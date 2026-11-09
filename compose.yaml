@@ -1,0 +1,106 @@
+name: us-macro
+
+x-app: &app
+  image: us-macro-app:1.0.0
+  build: .
+  user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+  environment: &data-env
+    MACRO_DB_PATH: /app/data/macroeconomics.db
+    MACRO_DATA_DIR: /app/data
+    HOME: /tmp
+    MPLCONFIGDIR: /tmp/matplotlib
+    IPYTHONDIR: /tmp/ipython
+    COVERAGE_FILE: /tmp/.coverage
+    PYTEST_ADDOPTS: "-o cache_dir=/tmp/pytest_cache"
+  volumes:
+    - ./data:/app/data
+    - ./reports:/app/reports
+
+services:
+  pipeline:
+    <<: *app
+    env_file: .env
+    command: ["macro-pipeline", "update"]
+
+  dashboard:
+    <<: *app
+    ports: ["127.0.0.1:8501:8501"]
+    depends_on:
+      pipeline:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8501/_stcore/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  postgres:
+    image: postgres:16.10-bookworm@sha256:38471f330eb885e04de130b768d6db4e10469e2311879c7e5c699f6d2d8a1c74
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow-local-development
+      POSTGRES_DB: airflow
+    volumes: ["airflow-postgres:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U airflow"]
+      interval: 5s
+      retries: 20
+    restart: unless-stopped
+
+  airflow:
+    image: us-macro-airflow:3.1.8
+    user: "${LOCAL_UID:-1000}:0"
+    build:
+      context: .
+      dockerfile: docker/airflow.Dockerfile
+    env_file: .env
+    environment:
+      <<: *data-env
+      HOME: /home/airflow
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "false"
+      AIRFLOW__CORE__PARALLELISM: "4"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow-local-development@postgres/airflow
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: admin:admin
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_PASSWORDS_FILE: /opt/airflow/state/passwords.json
+      AIRFLOW__API_AUTH__JWT_SECRET: local-development-only-change-before-remote-deployment
+      AIRFLOW__API__SECRET_KEY: local-development-only-change-before-remote-deployment
+      AIRFLOW__CORE__EXECUTION_API_SERVER_URL: http://localhost:8080/execution/
+    command: standalone
+    ports: ["127.0.0.1:8080:8080"]
+    volumes:
+      - ./data:/app/data
+      - airflow-logs:/opt/airflow/logs
+      - airflow-state:/opt/airflow/state
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import json,urllib.request; h=json.load(urllib.request.urlopen('http://localhost:8080/api/v2/monitor/health')); assert all(h[k]['status']=='healthy' for k in ('metadatabase','scheduler','dag_processor','triggerer'))"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 10
+    restart: unless-stopped
+
+  tests:
+    <<: *app
+    profiles: ["tools"]
+    command: ["pytest", "-m", "not airflow and not live", "--cov=macro_pipeline", "--cov-report=term-missing", "--junitxml=reports/test-results.xml"]
+
+  notebook:
+    <<: *app
+    profiles: ["tools"]
+    command: ["jupyter", "lab", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--allow-root"]
+    ports: ["127.0.0.1:8888:8888"]
+    volumes:
+      - ./data:/app/data
+      - ./reports:/app/reports
+      - ./notebooks:/app/notebooks
+
+volumes:
+  airflow-postgres:
+  airflow-logs:
+  airflow-state:
