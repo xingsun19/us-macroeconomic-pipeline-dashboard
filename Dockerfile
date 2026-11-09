@@ -8,8 +8,10 @@ COPY src ./src
 RUN pip install --no-deps .
 COPY dashboard ./dashboard
 COPY notebooks ./notebooks
+RUN chmod -R a+rX /app/notebooks
 COPY tests ./tests
 COPY scripts ./scripts
+COPY snapshots ./snapshots
 COPY .streamlit ./.streamlit
 RUN mkdir -p /app/data /app/reports
 EXPOSE 8501

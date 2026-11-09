@@ -60,3 +60,11 @@ def test_missing_database_has_actionable_message(settings, monkeypatch):
     app = AppTest.from_file(str(APP)).run()
     assert not app.exception
     assert "macro-pipeline update" in app.info[0].value
+
+
+def test_archived_dashboard_labels_the_vintage(settings, client, monkeypatch):
+    monkeypatch.setenv("MACRO_OFFLINE", "1")
+    app = setup_app(settings, client, monkeypatch)
+    assert not app.exception
+    assert any("Archived snapshot" in notice.value for notice in app.info)
+    assert not app.warning

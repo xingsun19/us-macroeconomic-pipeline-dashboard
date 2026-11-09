@@ -1,0 +1,31 @@
+services:
+  replay:
+    image: us-macro-app:1.0.0
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    network_mode: none
+    environment:
+      HOME: /tmp
+      MPLCONFIGDIR: /tmp/matplotlib
+      IPYTHONDIR: /tmp/ipython
+      MACRO_OFFLINE: "1"
+    volumes:
+      - ./data:/app/data
+      - ./reports:/app/reports
+    command: ["python", "scripts/run_offline.py"]
+
+  dashboard:
+    image: us-macro-app:1.0.0
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    environment:
+      HOME: /tmp
+      MACRO_DB_PATH: /app/data/offline/macroeconomics.db
+      MACRO_OFFLINE: "1"
+    volumes:
+      - ./data:/app/data:ro
+    ports: ["127.0.0.1:8501:8501"]
+    restart: "no"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8501/_stcore/health')"]
+      interval: 5s
+      timeout: 5s
+      retries: 10

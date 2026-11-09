@@ -4,12 +4,12 @@ Verified on **November 8, 2026 (America/Chicago)**. Container/audit timestamps u
 
 | Check | Observed outcome |
 |---|---|
-| Native Python application tests | 46 passed, 1 Airflow-specific test deselected; Python 3.13.5 |
-| Linux Docker application tests | 46 passed, 1 Airflow-specific test deselected; Python 3.11.18 |
-| Application coverage | 94% statement coverage (542 statements, 30 not covered) |
+| Native Python application tests | 53 passed, 1 Airflow-specific test deselected; Python 3.13.5 |
+| Linux Docker application tests | 53 passed, 1 Airflow-specific test deselected; Python 3.11.18 |
+| Application coverage | 94% statement coverage (582 statements, 33 not covered) |
 | Airflow import/dependency graph | 1 passed in the Apache Airflow 3.1.8 container |
 | Real `dag.test()` execution | All seven tasks succeeded, including live FRED requests, SQLite publication, and notebook/report generation |
-| Earlier scheduler/LocalExecutor verification | Run `verification_daily_analysis`: SUCCESS; all seven tasks SUCCESS; recurring scheduling has since been removed at the user's request |
+| Earlier scheduler/LocalExecutor verification | Run `verification_daily_analysis`: SUCCESS; all seven tasks SUCCESS; the current deployment uses on-demand execution |
 | On-demand Run launcher | All seven tasks succeeded in a temporary Airflow container; HTML/dashboard opened; pressing Return stopped project services |
 | Fresh Airflow metadata | Initialized a separate empty PostgreSQL database, executed all seven tasks successfully, and confirmed paused DAG with no next scheduled run |
 | Notebook | All 11 code cells executed without errors, natively and by Airflow's isolated Docker analysis environment |
@@ -18,14 +18,14 @@ Verified on **November 8, 2026 (America/Chicago)**. Container/audit timestamps u
 | No automatic schedule | DAG uses `schedule=None` and `NullTimetable`; graph regression test passes; no persistent Airflow scheduler is needed |
 | Browser UI | Latest metrics, standardized comparison, relationship tab, zoom/reset, quality table, and download inspected |
 | Browser CSV download | 322 rows; six selected value/quality columns plus date; values match SQLite using a DataFrame equality check |
-| Streamlit interactions | After removing date controls, all 3 targeted AppTest tests passed: full-history chart/table data, no date picker or timeline slider, indicator filtering, standardization, lag/changes controls, empty/single selection, and missing database |
+| Streamlit interactions | After removing date controls, all 4 AppTest tests passed: full-history chart/table data, no date picker or timeline slider, indicator filtering, standardization, lag/changes controls, empty/single selection, missing database, and archived-vintage labeling |
 | Docker lifecycle | PostgreSQL healthy during execution, dashboard healthy during viewing; project services stopped afterward |
 
 The published data have **322 monthly rows (2000-01 through 2026-10)**. The latest values are UNRATE **4.1%** (2026-10), CPIAUCSL **336.298** (2026-09), and FEDFUNDS **3.88%** (2026-10). October 2025 UNRATE/CPI and unreleased October 2026 CPI are retained as null with explicit flags.
 
 The suite exercises pagination, rate-limit retries, sanitized HTTP/timeout errors, duplicate conflicts, source missingness, missing-month rejection, release-date differences, warm-up inflation, invalid values, stale data, derived identities, raw-checksum tampering, idempotent reruns, historical revisions, transaction rollback, rejected updates preserving the prior publication, CLI exports, and analysis artifacts. Reporting integration tests execute real Jupyter kernels, verify refreshed exports after a historical revision, reject a mismatched run ID, and exercise failed-cell/missing-figure preservation.
 
-Seven launcher tests cover interactive completion/cleanup, failed-run cleanup without opening the dashboard, starting/stopping an owned Colima VM from either the `colima` or `default` Docker context, preserving other running containers, and rejecting duplicate Run windows. They use isolated command doubles; the real launcher was also executed against Docker and the live FRED API.
+Nine launcher tests cover interactive completion/cleanup, failed-run cleanup without opening the dashboard, starting/stopping an owned Colima VM from either the `colima` or `default` Docker context, preserving other running containers, rejecting duplicate Run windows, preparing the offline runtime, and replaying without a key/build/PostgreSQL. They use isolated command doubles; the real launcher was also executed against Docker and the live FRED API.
 
 The interactive Run verification published data run `8fdcf9538f1f79ea43175d3e9fe47b9e`. All 12 artifact hashes and the executed notebook hash were checked against its manifest, and all seven SQLite audit stages were SUCCESS. The outputs comprise one HTML report, four PNG figures, five CSV tables/data exports, findings Markdown, and a JSON analysis summary, plus the executed notebook and checksum manifest. Later verification runs can refresh these artifacts; `reports/report_manifest.json` identifies the latest published analysis.
 
@@ -45,6 +45,16 @@ Minor dependency warnings were emitted by Matplotlib/Jupyter; the official Airfl
 
 ## Scope and evidence
 
-The executed notebook, generated statistics/figures, findings, and this report are repository artifacts. Raw JSON, SQLite files, temporary logs, and credentials remain local. The CI template uses offline fixtures and checks DAG structure without a FRED secret; live end-to-end verification was performed locally with the configured key. Remote CI is not claimed: GitHub rejected active workflow publication because the current OAuth credential lacks `workflow` scope. The complete configuration is retained as `.github/ci-template.yml` for optional activation after authorization.
+The executed notebook, generated statistics/figures, findings, and this report are repository artifacts. Working SQLite files, per-run raw history, temporary logs, and credentials remain local; a reviewed raw-data archive is included under snapshots/. The CI template uses offline fixtures and checks DAG structure without a FRED secret; live end-to-end verification was performed locally with the configured key. The CI configuration includes fixture-based application checks, real archived-data reproduction, and an Airflow graph check. Remote CI status is recorded separately after publication.
 
-This is a local, on-demand Docker deployment. The daily schedule has been removed. The host only needs to be available while the user runs or views the dashboard; HTML reports remain usable with Docker stopped. No claim is made about five years of uninterrupted third-party service availability. PowerPoint, group/API approval, and classroom presentation are outside the completed technical scope.
+This is a local, on-demand Docker deployment. The daily schedule has been removed. The host only needs to be available while running or viewing the dashboard; HTML reports remain usable with Docker stopped. No claim is made about five years of uninterrupted third-party service availability.
+
+## Archived-data reproduction verification
+
+- Preserved the real FRED response bundle for vintage 2026-11-08 (112,353 bytes, 1,001 source observations including the warm-up year), with a SHA-256 and provenance manifest.
+- Executed `scripts/run.sh --offline --batch` from a separate clean checkout configuration with an empty API key. Docker inspection confirmed the replay container's network mode was `none`.
+- Rebuilt 322 published months matching the current database within floating-point tolerance; executed all 11 notebook code cells and verified hashes for all 12 report artifacts plus the exported notebook.
+- Confirmed the offline database and reports were written only under `data/offline/` and `reports/offline/`. The live dashboard continued running during this isolated test.
+- Started a separate dashboard on port 8502 using the rebuilt database on a read-only mount, with no API key. Its health endpoint returned `ok`; AppTest verified three metrics, all 322 rows, an archived-vintage banner, and no runtime errors. The preview container was stopped after verification.
+- A container test exposed notebook file permissions inherited from locally generated outputs. The application image now makes its bundled notebook readable to the runtime user; the full Linux suite and offline replay passed after rebuilding.
+- Windows instructions follow the official WSL 2 and Docker documentation. No Windows host was available, so native Windows execution is not claimed.

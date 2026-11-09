@@ -16,7 +16,7 @@ nb.cells = [
 
 This notebook reads the **validated SQLite database**, performs reproducible exploratory analysis, and exports figures and findings. It does not call an API or contain credentials. The Run launcher executes the Airflow DAG once, including this notebook after successful data publication. There is no recurring schedule. For separate manual analysis, run `macro-pipeline update` first, then execute this notebook from top to bottom. All values and conclusions below are calculated from the database snapshot.
 
-The deliverable covers API ingestion, database storage, an executable end-to-end Airflow DAG, a reproducible GitHub repository, and EDA. The interactive Streamlit dashboard is a separate application. The requested PowerPoint is outside the current scope.
+The deliverable covers API ingestion, database storage, an executable end-to-end Airflow DAG, a reproducible GitHub repository, and EDA. The interactive Streamlit dashboard is a separate application.
 """),
     md("""### 1. Sources, units, and design choices
 
@@ -48,6 +48,7 @@ root = Path.cwd() if (Path.cwd() / 'pyproject.toml').exists() else Path.cwd().pa
 report_dir = Path(os.getenv('MACRO_REPORT_DIR', str(root / 'reports'))).resolve()
 df, run = read_dataset(settings.db_path)
 validation = validate_monthly(df.reset_index(), run['as_of'])
+display(Markdown("**Archived snapshot reproduction — no live API update.**")) if os.getenv("MACRO_OFFLINE") == "1" else None
 display(Markdown(f"**FRED vintage:** {run['as_of']} · **Rows:** {len(df)} · **Published:** {run['published_at']}"))
 display(df.tail(8))"""),
     md("### 2. Audit the database and data quality"),
@@ -115,7 +116,7 @@ display(lag_table.groupby('outcome').agg(min_pairs=('n', 'min'), max_pairs=('n',
 
 **Reproducibility.** `requirements.lock` pins Python dependencies and hashes; Docker fixes base-image digests. Every refresh stores the requested FRED vintage and raw checksum. Use a new database path with `macro-pipeline update --as-of YYYY-MM-DD` for a separate historical snapshot; the publication guard prevents older snapshots overwriting newer data. The CSV reports and executed notebook preserve this run's visible results. External APIs, registry availability, and future provider changes cannot be guaranteed indefinitely, so archive release artifacts for long-term reproducibility.
 
-**Project components:** `src/macro_pipeline/`, `dags/us_macro_pipeline.py`, `dashboard/app.py`, `tests/`, `compose.yaml`, `Run.command`, and the English `README.md`. The DAG runs extraction → raw storage → cleaning/transformation → validation → publication → read-back verification → notebook execution and report generation. The analysis task uses a frozen database snapshot and stages outputs before publishing the HTML, figures, tables, findings, and executed notebook. It runs only when requested; no PowerPoint is generated in this scope.
+**Project components:** `src/macro_pipeline/`, `dags/us_macro_pipeline.py`, `dashboard/app.py`, `tests/`, `compose.yaml`, `Run.command`, and the English `README.md`. The DAG runs extraction → raw storage → cleaning/transformation → validation → publication → read-back verification → notebook execution and report generation. The analysis task uses a frozen database snapshot and stages outputs before publishing the HTML, figures, tables, findings, and executed notebook. It runs only when requested.
 """),
     code("""expected = ['descriptive_statistics.csv', 'correlation_levels.csv', 'correlation_changes.csv', 'lag_correlations.csv', 'analysis_summary.json', 'findings.md', 'monthly_indicators.csv']
 assert all((report_dir / item).is_file() for item in expected)

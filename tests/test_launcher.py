@@ -42,12 +42,12 @@ elif name == 'docker':
     return root, env
 
 
-def execute(launcher, *, batch=False, ready=True, **flags):
+def execute(launcher, *, batch=False, ready=True, extra=(), **flags):
     root, env = launcher
     if ready:
         Path(env["FAKE_ENGINE"]).touch()
     env.update(flags)
-    result = subprocess.run(["bash", str(root / "scripts/run.sh"), *(["--batch"] if batch else [])],
+    result = subprocess.run(["bash", str(root / "scripts/run.sh"), *(["--batch"] if batch else []), *extra],
                             input="\n", text=True, capture_output=True, env=env, timeout=15)
     event_file = Path(env["FAKE_EVENTS"])
     events = [json.loads(line) for line in event_file.read_text().splitlines()] if event_file.exists() else []
@@ -93,3 +93,21 @@ def test_duplicate_click_does_not_touch_running_services(launcher):
     assert "Another Run window" in result.stdout
     assert events == []
     assert lock.exists()
+
+
+def test_offline_launcher_uses_no_key_no_build_and_no_postgres(launcher):
+    (launcher[0] / ".env").write_text("FRED_API_KEY=\n")
+    result, events = execute(launcher, batch=True, extra=("--offline",))
+    assert result.returncode == 0, result.stdout + result.stderr
+    replay = [e for e in events if "replay" in e and "run" in e]
+    assert len(replay) == 1 and "never" in replay[0]
+    assert not any("build" in e for e in events)
+    assert not any("up" in e and "postgres" in e for e in events)
+
+
+def test_prepare_offline_builds_only_app_without_key(launcher):
+    (launcher[0] / ".env").write_text("FRED_API_KEY=\n")
+    result, events = execute(launcher, extra=("--prepare-offline",))
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert ["docker", "compose", "build", "dashboard"] in events
+    assert not any("run" in e for e in events)

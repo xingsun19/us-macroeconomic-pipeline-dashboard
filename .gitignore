@@ -22,3 +22,5 @@ reports/*.html
 reports/test-*.xml
 reports/*-local.log
 reports/.analysis*
+reports/offline/
+archives/

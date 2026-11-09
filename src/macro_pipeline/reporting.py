@@ -55,7 +55,7 @@ def atomic_write(path, content):
             temp.unlink(missing_ok=True)
 
 
-def execute_analysis(settings, notebook_path, reports_dir, *, expected_run_id=None, kernel_name="python3"):
+def execute_analysis(settings, notebook_path, reports_dir, *, expected_run_id=None, kernel_name="python3", published_notebook_path=None):
     """Preserve published outputs until all cells, HTML, and figures pass validation.
 
     Each output is replaced atomically, with the checksum manifest written last.
@@ -67,6 +67,7 @@ def execute_analysis(settings, notebook_path, reports_dir, *, expected_run_id=No
     from nbconvert import HTMLExporter
 
     notebook_path, reports_dir = Path(notebook_path).resolve(), Path(reports_dir).resolve()
+    published_notebook_path = Path(published_notebook_path).resolve() if published_notebook_path else notebook_path
     reports_dir.mkdir(parents=True, exist_ok=True)
     with report_lock(reports_dir), tempfile.TemporaryDirectory(prefix=".analysis-", dir=reports_dir) as folder:
         work = Path(folder)
@@ -114,7 +115,7 @@ def execute_analysis(settings, notebook_path, reports_dir, *, expected_run_id=No
         manifest = {
             "run_id": run["run_id"], "as_of": run["as_of"], "rows": len(frame),
             "generated_at": now(), "executed_code_cells": len(code_cells),
-            "notebook": {"name": notebook_path.name, "sha256": hashlib.sha256(executed).hexdigest()},
+            "notebook": {"name": published_notebook_path.name, "sha256": hashlib.sha256(executed).hexdigest()},
             "files": {name: hashlib.sha256((output / name).read_bytes()).hexdigest() for name in REPORT_FILES},
         }
         # Hold a short write reservation so the publication pointer cannot change
@@ -126,6 +127,6 @@ def execute_analysis(settings, notebook_path, reports_dir, *, expected_run_id=No
                 raise QualityError("A newer dataset was published during analysis; rerun against it.")
             for name in REPORT_FILES:
                 atomic_write(reports_dir / name, (output / name).read_bytes())
-            atomic_write(notebook_path, executed)
+            atomic_write(published_notebook_path, executed)
             atomic_write(reports_dir / "report_manifest.json", json.dumps(manifest, indent=2).encode() + b"\n")
         return manifest

@@ -2,6 +2,7 @@
 
 from datetime import date
 import json
+import os
 import sqlite3
 
 import numpy as np
@@ -64,6 +65,8 @@ with st.sidebar:
 
 st.markdown('<div class="eyebrow">RESEARCH DESK / UNITED STATES</div>', unsafe_allow_html=True)
 st.title("The economy, in perspective.")
+if os.getenv("MACRO_OFFLINE") == "1":
+    st.info(f"Archived snapshot · FRED vintage {run['as_of']}. Offline reproduction; these are historical results, not a live update.")
 st.markdown('<p class="intro">Explore the relationship between jobs, prices, and monetary policy. The full history of three defining U.S. economic indicators, from 2000 onward.</p>', unsafe_allow_html=True)
 st.caption(f"Validated dataset · {len(data):,} monthly rows · Published {pd.Timestamp(run['published_at']).strftime('%Y-%m-%d %H:%M UTC')}")
 st.markdown("#### Latest available observations")
@@ -78,7 +81,7 @@ for container, col in zip(st.columns(3), ["unrate", "cpiaucsl", "fedfunds"]):
         st.metric(LABELS[col], f"{last:.2f}" + ("%" if col != "cpiaucsl" else ""), delta=delta, delta_color="off")
         st.caption(f"{observed.index[-1]:%B %Y} · {UNITS[col]}")
 st.caption("Charts, correlations, and CSV downloads include the full available history. Publication months differ by series.")
-if (pd.Timestamp(date.today()) - pd.Timestamp(run["as_of"])).days > 7:
+if os.getenv("MACRO_OFFLINE") != "1" and (pd.Timestamp(date.today()) - pd.Timestamp(run["as_of"])).days > 7:
     st.warning("This snapshot is more than seven days old. Start the project with Run.command to check for new releases.")
 
 if not selected:

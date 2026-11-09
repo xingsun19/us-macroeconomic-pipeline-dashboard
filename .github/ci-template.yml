@@ -16,6 +16,8 @@ jobs:
       - run: pip install --no-deps -e .
       - run: python scripts/scan_secrets.py
       - run: pytest -m 'not airflow and not live' --cov=macro_pipeline --cov-report=term-missing --junitxml=reports/test-results.xml
+      - name: Reproduce the real archived snapshot without API credentials
+        run: python scripts/run_offline.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
