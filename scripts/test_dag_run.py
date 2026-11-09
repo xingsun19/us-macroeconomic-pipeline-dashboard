@@ -15,4 +15,4 @@ run = module.dag.test()
 states = {ti.task_id: str(ti.state) for ti in run.get_task_instances()}
 print(json.dumps({"dag_id": run.dag_id, "state": str(run.state), "tasks": states}, indent=2))
 assert str(run.state) == "success", "The real DAG run did not succeed."
-assert len(states) == 6 and set(states.values()) == {"success"}
+assert len(states) == 7 and set(states.values()) == {"success"}

@@ -7,6 +7,7 @@ x-app: &app
   environment: &data-env
     MACRO_DB_PATH: /app/data/macroeconomics.db
     MACRO_DATA_DIR: /app/data
+    MACRO_REPORT_DIR: /app/reports
     HOME: /tmp
     MPLCONFIGDIR: /tmp/matplotlib
     IPYTHONDIR: /tmp/ipython
@@ -58,6 +59,9 @@ services:
     environment:
       <<: *data-env
       HOME: /home/airflow
+      MACRO_ANALYSIS_PYTHON: /opt/analysis-venv/bin/python
+      MACRO_NOTEBOOK_KERNEL: macro-analysis
+      MACRO_NOTEBOOK_PATH: /app/notebooks/01_macroeconomic_eda.ipynb
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "false"
@@ -72,6 +76,8 @@ services:
     ports: ["127.0.0.1:8080:8080"]
     volumes:
       - ./data:/app/data
+      - ./reports:/app/reports
+      - ./notebooks:/app/notebooks
       - airflow-logs:/opt/airflow/logs
       - airflow-state:/opt/airflow/state
     depends_on:

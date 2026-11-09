@@ -2,6 +2,8 @@
 
 from datetime import timedelta
 import hashlib
+import os
+from pathlib import Path
 
 import pendulum
 from airflow.sdk import dag, task, get_current_context
@@ -12,7 +14,7 @@ from macro_pipeline import pipeline
 
 @dag(
     dag_id="us_macro_pipeline",
-    description="Extract FRED, persist raw data, transform, validate, and atomically publish SQLite",
+    description="Update FRED/SQLite, execute the EDA notebook, and publish HTML reports and charts",
     schedule="0 18 * * *",
     start_date=pendulum.datetime(2026, 1, 1, tz="UTC"),
     catchup=False,
@@ -25,6 +27,8 @@ from macro_pipeline import pipeline
     A failing extraction or validation leaves the previously published dataset intact.
     Run durations and quality results are also recorded in the application SQLite database.
     No API calls or database connections occur while importing this file.
+    After read-back verification, an isolated Python environment executes every EDA cell.
+    HTML, PNG figures, statistics, and findings are published only after successful analysis.
     """,
 )
 def macro_dag():
@@ -53,9 +57,19 @@ def macro_dag():
 
     @task
     def verify_update(pipeline_run_id: str):
-        return pipeline.verify(Settings.from_env(), pipeline_run_id)
+        pipeline.verify(Settings.from_env(), pipeline_run_id)
+        return pipeline_run_id
 
-    verify_update(publish_database(validate_quality(clean_transform(store_raw(extract_api())))))
+    @task
+    def generate_analysis(pipeline_run_id: str):
+        from macro_pipeline.reporting import run_analysis_task
+        return run_analysis_task(
+            Settings.from_env(), pipeline_run_id,
+            os.environ["MACRO_ANALYSIS_PYTHON"],
+            Path("/opt/project/scripts/execute_notebook.py"),
+        )
+
+    generate_analysis(verify_update(publish_database(validate_quality(clean_transform(store_raw(extract_api()))))))
 
 
 dag = macro_dag()

@@ -6,7 +6,7 @@ A Northwestern University **Topics in Data Engineering, Fall 2026** project: ing
 
 ## Quick start with Docker
 
-Prerequisites: Git, Docker Engine/Desktop with **Compose v2 or later**, internet access, and your own [FRED API key](https://fred.stlouisfed.org/docs/api/api_key.html). Recommended resources: 4 CPUs, 8 GB RAM, and 5 GB free disk. The upstream images support Apple Silicon and Linux.
+Prerequisites: Git, Docker Engine/Desktop with **Compose v2 or later**, internet access, and your own [FRED API key](https://fred.stlouisfed.org/docs/api/api_key.html). Recommended Docker VM resources: 4 CPUs, 8 GB RAM, and at least 10 GB free disk for images and builds. The upstream images support Apple Silicon and Linux.
 
 ```bash
 git clone https://github.com/xingsun19/us-macroeconomic-pipeline-dashboard.git
@@ -21,7 +21,7 @@ The script configures host user IDs for bind mounts, builds the images, loads re
 - **Dashboard:** [http://localhost:8501](http://localhost:8501)
 - **Airflow:** [http://localhost:8080](http://localhost:8080), username `admin`. Read its generated local password using `docker compose exec airflow cat /opt/airflow/state/passwords.json`.
 - Check readiness using `docker compose ps`. The initial `pipeline` service exits with code 0; that is expected. The dashboard starts only after a successful load.
-- The `us_macro_pipeline` DAG is enabled by default and runs daily at **18:00 UTC**. Keep the machine and Docker running for scheduled updates.
+- The `us_macro_pipeline` DAG is enabled by default and runs daily at **18:00 UTC**. Each successful update automatically executes the EDA notebook and regenerates the HTML report, PNG charts, statistics, and findings. Keep the machine and Docker running for scheduled updates.
 
 This is a **local demonstration deployment**. Ports bind to loopback; Airflow uses the development Simple Auth Manager, local PostgreSQL credentials, and a local JWT signing setting. Remote deployment needs separate authentication, TLS, private networking, and managed secrets. PostgreSQL stores **Airflow metadata only**; all FRED data are in SQLite. No paid service is required.
 
@@ -49,13 +49,33 @@ flowchart LR
     V --> P[Atomic publication]
     P --> M[SQLite monthly_indicators]
     M --> Q[Read-back verification]
-    M --> N[Jupyter EDA]
+    Q --> N[Execute Jupyter EDA]
+    N --> H[Verified HTML, charts, and findings]
     M --> D[Streamlit + Plotly]
     A[Daily Airflow DAG] -. orchestrates .-> E
     A -. orchestrates .-> Q
 ```
 
-Actual DAG: `extract_api → store_raw → clean_transform → validate_quality → publish_database → verify_update`. The CLI and DAG use the same Python functions. XCom carries only a pipeline identifier. Both SQLite audit records and Airflow record stage/task durations and outcomes.
+Actual DAG: `extract_api → store_raw → clean_transform → validate_quality → publish_database → verify_update → generate_analysis`. The CLI and DAG use the same data-stage functions. XCom carries only a pipeline identifier. Both SQLite audit records and Airflow record stage/task durations and outcomes.
+
+The final task runs only after all six data stages succeed. It executes every notebook cell in an isolated, hash-locked Python environment inside the Airflow container, so notebook dependencies cannot alter Airflow's environment. A SQLite backup fixes the analysis to the exact published run. Outputs are generated in a temporary directory and validated before replacing the existing reports; a cell error or missing figure fails the Airflow task and preserves the previous report. Each file is replaced atomically and the provenance/checksum manifest is written last. Two retries and the task timeout apply to analysis too. A report error does not invalidate the successfully published data used by the dashboard.
+
+## Where to see the automatically refreshed analysis
+
+| Output | Local path |
+|---|---|
+| Interactive dashboard | `http://localhost:8501`; click **Refresh database** to read newly published data |
+| Complete HTML analysis report | `reports/eda.html` (on macOS: `open reports/eda.html`) |
+| Executed notebook | `notebooks/01_macroeconomic_eda.ipynb` |
+| Four PNG figures | `reports/figures/` |
+| Statistical tables, findings, and exported data | `reports/*.csv`, `reports/findings.md` |
+| Report run, vintage, generation time, and artifact hashes | `reports/report_manifest.json` |
+
+The reports and notebook directories are bind-mounted into Airflow, so results persist on the host and remain available after container restarts. No manual notebook command is needed for the daily schedule. To request the **complete** update immediately, trigger `us_macro_pipeline` in Airflow or use `docker compose exec airflow airflow dags trigger us_macro_pipeline`. A run is complete only when **generate_analysis** succeeds. The data-only `macro-pipeline update` CLI remains available for independent ingestion.
+
+Automatic generation updates local files; it does not automatically commit reports to GitHub. The public repository shows the latest submitted snapshot.
+
+For an existing installation, rebuild and restart Airflow after pulling this update: `docker compose up -d --build --no-deps airflow`. Keep its DAG enabled. The first complete run can be triggered with the command above.
 
 ```text
 src/macro_pipeline/       API client, SQLite, transformations, pipeline, CLI, analysis
@@ -69,6 +89,7 @@ scripts/                 Startup, notebook/DAG execution, secret scan
 docker/                  Airflow image and official vendored constraints
 compose.yaml             Complete local stack and optional test/notebook services
 requirements.lock        Universal Python dependency lock with hashes
+requirements-analysis.* Minimal, separately locked notebook execution runtime
 .github/ci-template.yml  Ready-to-enable CI tests and Airflow graph checks
 .env.example             Credential-free configuration template
 data/                    Local SQLite and raw snapshots; ignored by Git
@@ -99,7 +120,7 @@ A failed extraction, transformation, or validation leaves the last successful da
 ## EDA and testing
 
 ```bash
-# Execute every notebook cell, refresh reports, and export HTML
+# Optional manual report rerun; the daily DAG already performs this step
 docker compose run --rm --no-deps notebook python scripts/execute_notebook.py
 
 # Interactive JupyterLab; use the generated token from the local logs
@@ -113,7 +134,8 @@ docker compose run --rm --no-deps tests
 # Airflow import and dependency graph
 docker compose exec airflow pytest /opt/project/tests/test_dag.py -q
 
-# Real six-task smoke test; pause scheduling to avoid overlapping writers
+# Real seven-task smoke test, including report generation
+# Pause scheduling and wait for active runs to finish before this isolated smoke test
 docker compose exec airflow airflow dags pause us_macro_pipeline
 docker compose exec airflow python /opt/project/scripts/test_dag_run.py
 docker compose exec airflow airflow dags unpause us_macro_pipeline
@@ -177,6 +199,7 @@ See [verification](reports/verification.md) and [assignment mapping](docs/requir
 - **Compose missing:** install Docker Desktop or the official plugin. Homebrew Docker/Colima users can install `docker-compose` and follow its plugin-directory instructions.
 - **Permissions:** the startup script sets `LOCAL_UID`/`LOCAL_GID`. Update these in `.env` if moving the checkout to another host.
 - **Airflow startup:** allow up to two minutes for migrations. Check `docker compose ps` and task logs.
+- **Exit code 137 or builds running out of space:** check the Docker VM's memory and disk, not only the host's free resources. Allocate the recommended resources above. Colima users can stop the VM and restart it with `colima start --cpu 4 --memory 8 --disk 30`; restarting interrupts other containers on that VM.
 - **Validation failure:** inspect SQLite run/step records and retained raw JSON. Fix the source/configuration issue and rerun; do not silently fill data or relax checks.
 - **Old dashboard:** refresh its cache, check the vintage, and inspect the DAG schedule. Keep Docker running for updates.
 - **Backups:** back up `data/` and the Airflow PostgreSQL volume. Use SQLite's backup API while writers are running instead of copying only the `.db` file and omitting its WAL.

@@ -108,6 +108,7 @@ def write_analysis(frame, run, output):
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
     figures = make_figures(frame, output / "figures")
+    frame.to_csv(output / "monthly_indicators.csv", index_label="date")
     frame[list(LABELS)].describe().T.to_csv(output / "descriptive_statistics.csv")
     frame[ECONOMIC_COLUMNS].corr().to_csv(output / "correlation_levels.csv")
     frame[ECONOMIC_COLUMNS].diff().corr().to_csv(output / "correlation_changes.csv")

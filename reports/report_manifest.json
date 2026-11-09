@@ -1,0 +1,25 @@
+{
+  "run_id": "783a2ed138de653611eca7685c9a75b8",
+  "as_of": "2026-11-08",
+  "rows": 322,
+  "generated_at": "2026-11-09T02:39:00.471090+00:00",
+  "executed_code_cells": 11,
+  "notebook": {
+    "name": "01_macroeconomic_eda.ipynb",
+    "sha256": "49c786356e89e3edaf64e7c9af2b441aa9b1a2c41d6eb6230b643ced1fac0573"
+  },
+  "files": {
+    "eda.html": "5e88113d605e1576af138d72be0086b7c1d017a808895afe52c2aeec3720f020",
+    "analysis_summary.json": "2eee7ebfb6505655f67fad8c3af6797e63514b88e5021dc98dbd357e0fb88bfb",
+    "findings.md": "cca62c5a5afb2eb1985ce08db38e0004fa1abfce75a538e26dc7256700bc625c",
+    "monthly_indicators.csv": "c001b35c607ae16de7b1cbb2471444aaa79c6a28c312123cc53ea99ae37298d2",
+    "descriptive_statistics.csv": "2b5bb312dee4e28d979fde984e8cf118aee63a9043b3781a952cc4ed40e7fc95",
+    "correlation_levels.csv": "a49b08ed319dd23023ca43ef312124e556538db7340ed5610f11b598289b3a85",
+    "correlation_changes.csv": "8f9f2848c7ddca5f8de9129c70b04dc9e50e68acab623836573d93ec777a1064",
+    "lag_correlations.csv": "3b585525e97778626dd88c41168248849cf93d9164a9c0fbea728aa1e8352e5a",
+    "figures/historical_trends.png": "e795b2bdf08f522225e3509e5b47e754fe6885475e26ea1012e281479c4877e8",
+    "figures/inflation_and_policy.png": "b78316d17bda5bf6158996ce60386e8b667f2c983c1fd00169082a5ef008202b",
+    "figures/correlations.png": "0b6cbef874e1ce3e2e6496a8bf45c25ac6d91e819f240aa706e0487a7d438307",
+    "figures/relationship_stability.png": "74b49d2f929cde2f916e7bca6d56284d8cd07667567c358d1b58f3e874ab954d"
+  }
+}

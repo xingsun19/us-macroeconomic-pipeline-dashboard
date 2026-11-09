@@ -21,7 +21,7 @@ def now():
 
 
 @contextmanager
-def stage(settings, run_id, name):
+def stage(settings, run_id, name, *, fail_run=True):
     start = perf_counter()
     with connect(settings.db_path) as conn:
         conn.execute("INSERT OR REPLACE INTO pipeline_steps VALUES (?, ?, ?, NULL, NULL, 'RUNNING')", (run_id, name, now()))
@@ -30,7 +30,8 @@ def stage(settings, run_id, name):
     except Exception as exc:
         # Store only the exception class: request errors can otherwise include API keys.
         with connect(settings.db_path) as conn:
-            conn.execute("UPDATE pipeline_runs SET status='FAILED', error_type=?, completed_at=? WHERE run_id=?", (type(exc).__name__, now(), run_id))
+            if fail_run:
+                conn.execute("UPDATE pipeline_runs SET status='FAILED', error_type=?, completed_at=? WHERE run_id=?", (type(exc).__name__, now(), run_id))
             conn.execute("UPDATE pipeline_steps SET status='FAILED', completed_at=?, duration_seconds=? WHERE run_id=? AND stage=?", (now(), perf_counter()-start, run_id, name))
         raise
     else:

@@ -6,7 +6,7 @@ Source: user-provided **Final Project (2).ipynb**, *Topics in Data Engineering â
 |---|---|
 | Read API data | Authenticated FRED metadata and paginated observations; verified live runs |
 | Store API data in a database | SQLite raw JSON, normalized observations, staging, curated tables, and audit records |
-| DAG covering/measuring the full pipeline | Six Airflow tasks, status/duration, retries/timeouts, validation and read-back |
+| DAG covering/measuring the full pipeline | Seven Airflow tasks, status/duration, retries/timeouts, validation, read-back, and automatic notebook/HTML/chart generation |
 | Easy-to-run repository | English README, example config, dependency lock, Docker Compose, startup script, executed tests, optional CI template |
 | EDA with key insights | Executed notebook, statistics, trends, correlations/lags, figures, computed findings and limitations |
 | Reproducible now and years later | Pins/hashes, vendored constraints, image digests, explicit vintages, raw checksums, archive guidance; external availability cannot be guaranteed |

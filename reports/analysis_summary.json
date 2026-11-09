@@ -1,6 +1,6 @@
 {
   "as_of": "2026-11-08",
-  "run_id": "af97710f7738843d563f2bab29a19baa",
+  "run_id": "783a2ed138de653611eca7685c9a75b8",
   "rows": 322,
   "findings": [
     "The validated snapshot spans January 2000\u2013October 2026 (322 monthly rows), using the FRED vintage dated 2026-11-08.",

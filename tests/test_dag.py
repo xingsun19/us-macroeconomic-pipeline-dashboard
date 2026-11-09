@@ -12,12 +12,13 @@ def test_dag_import_and_dependency_graph():
     bag = DagBag(dag_folder=str(folder), include_examples=False)
     assert not bag.import_errors
     dag = bag.dags["us_macro_pipeline"]
-    expected = ["extract_api", "store_raw", "clean_transform", "validate_quality", "publish_database", "verify_update"]
+    expected = ["extract_api", "store_raw", "clean_transform", "validate_quality", "publish_database", "verify_update", "generate_analysis"]
     assert set(dag.task_ids) == set(expected)
     for upstream, downstream in zip(expected, expected[1:]):
         assert dag.get_task(upstream).downstream_task_ids == {downstream}
     assert dag.max_active_runs == 1
     assert not dag.catchup
+    assert dag.get_task("generate_analysis").trigger_rule == "all_success"
     for task in dag.tasks:
         # Airflow context names cannot also be positional TaskFlow parameters.
         assert 'run_id' not in inspect.signature(task.python_callable).parameters

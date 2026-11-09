@@ -1,22 +1,28 @@
-"""Execute the EDA notebook and export a shareable HTML report."""
+"""Execute and publish the complete analysis, manually or as the final DAG task."""
 
 from pathlib import Path
+import argparse
+import json
 import os
 
-import nbformat
-from nbconvert.preprocessors import ExecutePreprocessor
-from nbconvert import HTMLExporter
+from macro_pipeline.config import Settings
+from macro_pipeline.reporting import execute_analysis
 
-root = Path(__file__).resolve().parents[1]
-notebook_path = root / "notebooks/01_macroeconomic_eda.ipynb"
-nb = nbformat.read(notebook_path, as_version=4)
-ExecutePreprocessor(timeout=180, kernel_name="python3").preprocess(nb, {"metadata": {"path": str(root)}})
-nbformat.write(nb, notebook_path)
-report_dir = root / "reports"
-report_dir.mkdir(exist_ok=True)
-html, _ = HTMLExporter().from_notebook_node(nb)
-(report_dir / "eda.html").write_text(html)
-code_cells = [cell for cell in nb.cells if cell.cell_type == "code"]
-assert all(cell.execution_count is not None for cell in code_cells)
-assert not any(output.output_type == "error" for cell in code_cells for output in cell.outputs)
-print(f"Executed {len(code_cells)} code cells without errors. Exported reports/eda.html.")
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--expected-run-id", help="Require the database publication from this pipeline run")
+    args = parser.parse_args()
+    root = Path(__file__).resolve().parents[1]
+    result = execute_analysis(
+        Settings.from_env(),
+        os.getenv("MACRO_NOTEBOOK_PATH", str(root / "notebooks/01_macroeconomic_eda.ipynb")),
+        os.getenv("MACRO_REPORT_DIR", str(root / "reports")),
+        expected_run_id=args.expected_run_id,
+        kernel_name=os.getenv("MACRO_NOTEBOOK_KERNEL", "python3"),
+    )
+    print(json.dumps({key: result[key] for key in ("run_id", "as_of", "rows", "generated_at", "executed_code_cells")}, indent=2))
+
+
+if __name__ == "__main__":
+    main()

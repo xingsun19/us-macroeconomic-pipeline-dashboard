@@ -21,3 +21,4 @@ dist/
 reports/*.html
 reports/test-*.xml
 reports/*-local.log
+reports/.analysis*

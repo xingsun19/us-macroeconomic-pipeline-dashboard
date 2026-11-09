@@ -14,7 +14,7 @@ nb.cells = [
 
 **Research question:** How have unemployment, consumer prices, and the federal funds rate evolved since 2000, and how stable are their descriptive relationships?
 
-This notebook reads the **validated SQLite database**, performs reproducible exploratory analysis, and exports figures and findings. It does not call an API or contain credentials. Run `macro-pipeline update` first, then execute this notebook from top to bottom. All values and conclusions below are calculated from the database snapshot.
+This notebook reads the **validated SQLite database**, performs reproducible exploratory analysis, and exports figures and findings. It does not call an API or contain credentials. Airflow executes this notebook after each successful daily data update. For manual analysis, run `macro-pipeline update` first, then execute this notebook from top to bottom. All values and conclusions below are calculated from the database snapshot.
 
 The deliverable covers API ingestion, database storage, an executable end-to-end Airflow DAG, a reproducible GitHub repository, and EDA. The interactive Streamlit dashboard is a separate application. The requested PowerPoint is outside the current scope.
 """),
@@ -33,6 +33,7 @@ The published analysis begins in January 2000. Raw ingestion also retrieves 1999
     code("""from pathlib import Path
 import json
 import sqlite3
+import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -44,6 +45,7 @@ from macro_pipeline.analysis import LABELS, ECONOMIC_COLUMNS, findings, lag_corr
 
 settings = Settings.from_env()
 root = Path.cwd() if (Path.cwd() / 'pyproject.toml').exists() else Path.cwd().parent
+report_dir = Path(os.getenv('MACRO_REPORT_DIR', str(root / 'reports'))).resolve()
 df, run = read_dataset(settings.db_path)
 validation = validate_monthly(df.reset_index(), run['as_of'])
 display(Markdown(f"**FRED vintage:** {run['as_of']} · **Rows:** {len(df)} · **Published:** {run['published_at']}"))
@@ -51,7 +53,7 @@ display(df.tail(8))"""),
     md("### 2. Audit the database and data quality"),
     code("""with connect(settings.db_path, readonly=True) as conn:
     tables = pd.read_sql_query("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name", conn)
-    stages = pd.read_sql_query('SELECT stage, status, duration_seconds FROM pipeline_steps WHERE run_id=? ORDER BY started_at', conn, params=(run['run_id'],))
+    stages = pd.read_sql_query('SELECT stage, status, duration_seconds FROM pipeline_steps WHERE run_id=? AND stage != ? ORDER BY started_at', conn, params=(run['run_id'], 'generate_analysis'))
     raw_counts = pd.read_sql_query('SELECT series_id, COUNT(*) AS raw_observations FROM raw_observations WHERE run_id=? GROUP BY series_id', conn, params=(run['run_id'],))
 display(tables)
 display(raw_counts)
@@ -74,9 +76,9 @@ display(stats.round(3))
 peaks = pd.DataFrame([{'indicator': LABELS[c], 'minimum': df[c].min(), 'minimum_month': df[c].idxmin().strftime('%Y-%m'), 'maximum': df[c].max(), 'maximum_month': df[c].idxmax().strftime('%Y-%m')} for c in ['unrate', 'cpi_yoy', 'fedfunds']])
 display(peaks)"""),
     md("### 4. Historical trends\n\nThe first figure uses separate axes because a price index and percentage rates have different units. The second compares inflation and the policy rate in percent; their difference is measured in percentage points. Gaps in the charts are intentional."),
-    code("""analysis = write_analysis(df, run, root / 'reports')
-display(Image(filename=str(root / 'reports/figures/historical_trends.png')))
-display(Image(filename=str(root / 'reports/figures/inflation_and_policy.png')))"""),
+    code("""analysis = write_analysis(df, run, report_dir)
+display(Image(filename=str(report_dir / 'figures/historical_trends.png')))
+display(Image(filename=str(report_dir / 'figures/inflation_and_policy.png')))"""),
     code("""annual = df[ECONOMIC_COLUMNS].resample('YS').agg(['mean', 'count'])
 display(annual.tail(8).round(3))
 display(Markdown('Annual averages use available months only; counts disclose missing and partial years. They should not be interpreted as full-year averages when fewer than 12 months are observed.'))"""),
@@ -87,9 +89,9 @@ display(levels.corr().round(3))
 display(changes.corr().round(3))
 pair_counts = levels.notna().astype(int).T.dot(levels.notna().astype(int))
 display(pair_counts)
-display(Image(filename=str(root / 'reports/figures/correlations.png')))"""),
+display(Image(filename=str(report_dir / 'figures/correlations.png')))"""),
     md("### 6. Stability across time\n\nA scatter plot colored by year and a 60-month rolling correlation expose changes that a full-sample coefficient can hide. Rolling windows require all 60 paired observations; official missing months create gaps. The subperiods below are descriptive calendar partitions, not a formal recession classification."),
-    code("""display(Image(filename=str(root / 'reports/figures/relationship_stability.png')))
+    code("""display(Image(filename=str(report_dir / 'figures/relationship_stability.png')))
 periods = [('2000–2007', '2000-01-01', '2007-12-01'), ('2008–2019', '2008-01-01', '2019-12-01'), ('2020 onward', '2020-01-01', df.index.max())]
 period_summary = []
 for label, start, end in periods:
@@ -113,10 +115,10 @@ display(lag_table.groupby('outcome').agg(min_pairs=('n', 'min'), max_pairs=('n',
 
 **Reproducibility.** `requirements.lock` pins Python dependencies and hashes; Docker fixes base-image digests. Every refresh stores the requested FRED vintage and raw checksum. Use a new database path with `macro-pipeline update --as-of YYYY-MM-DD` for a separate historical snapshot; the publication guard prevents older snapshots overwriting newer data. The CSV reports and executed notebook preserve this run's visible results. External APIs, registry availability, and future provider changes cannot be guaranteed indefinitely, so archive release artifacts for long-term reproducibility.
 
-**Project components:** `src/macro_pipeline/`, `dags/us_macro_pipeline.py`, `dashboard/app.py`, `tests/`, `compose.yaml`, and the English `README.md`. The DAG runs extraction → raw storage → cleaning/transformation → validation → publication → read-back verification. No PowerPoint is generated in this scope.
+**Project components:** `src/macro_pipeline/`, `dags/us_macro_pipeline.py`, `dashboard/app.py`, `tests/`, `compose.yaml`, and the English `README.md`. The DAG runs extraction → raw storage → cleaning/transformation → validation → publication → read-back verification → notebook execution and report generation. The scheduled task uses a frozen database snapshot and stages outputs before publishing the HTML, figures, tables, findings, and executed notebook. No PowerPoint is generated in this scope.
 """),
-    code("""expected = ['descriptive_statistics.csv', 'correlation_levels.csv', 'correlation_changes.csv', 'lag_correlations.csv', 'analysis_summary.json', 'findings.md']
-assert all((root / 'reports' / item).is_file() for item in expected)
+    code("""expected = ['descriptive_statistics.csv', 'correlation_levels.csv', 'correlation_changes.csv', 'lag_correlations.csv', 'analysis_summary.json', 'findings.md', 'monthly_indicators.csv']
+assert all((report_dir / item).is_file() for item in expected)
 display(Markdown(f'**Execution complete:** {len(df)} monthly rows analyzed. Reports and figures are available in `reports/`.'))"""),
 ]
 dest = root / "notebooks/01_macroeconomic_eda.ipynb"
