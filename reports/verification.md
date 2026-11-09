@@ -1,6 +1,20 @@
 # Verification record
 
-Verified on **November 8, 2026 (America/Chicago)**. Container/audit timestamps use UTC and therefore extend into November 9. FRED data vintage: **2026-11-08**.
+Latest report reconciliation: **November 9, 2026 (America/Chicago)**, using FRED vintage **2026-11-09**. The deployment and full-suite checks below were performed on November 8; container/audit timestamps use UTC. The separately preserved offline archive retains vintage **2026-11-08**.
+
+## Latest report reconciliation
+
+The committed notebook and report artifacts correspond to successful data run `334862dbc55e2f824ea7f53d9914f484`, with analysis generated at **2026-11-09 15:13:24 UTC**. The existing outputs were checked against the local SQLite publication before submission; no new API ingestion was needed for this reconciliation.
+
+- All seven audit stages are `SUCCESS`; SQLite integrity and the source raw-bundle checksum passed.
+- All 12 report artifact hashes and the executed notebook hash match `report_manifest.json`. This includes the locally generated HTML, which remains excluded from Git and can be regenerated with Run.
+- All 11 notebook code cells have successful execution counts and no error outputs. Notebook source cells are unchanged from the previous commit.
+- The 322-row CSV matches SQLite. Descriptive statistics, level/change correlations, lag correlations, and written findings match calculations from that publication.
+- All four PNGs were visually reviewed and match the images embedded in the notebook. The HTML displays the matching vintage and database publication timestamp.
+- Observation values are unchanged from the previous published analysis. Correlation-export differences are below `1e-15`, consistent with floating-point arithmetic across execution environments.
+- The focused analysis/reporting suite passed: **5 tests**, including real notebook execution, revision refresh, and failed-report preservation.
+
+## Deployment and application verification
 
 | Check | Observed outcome |
 |---|---|

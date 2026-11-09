@@ -1,25 +1,25 @@
 {
-  "run_id": "1d8822fbb4ba7bf6ce594a3b1aa6715a",
-  "as_of": "2026-11-08",
+  "run_id": "334862dbc55e2f824ea7f53d9914f484",
+  "as_of": "2026-11-09",
   "rows": 322,
-  "generated_at": "2026-11-09T03:44:13.033066+00:00",
+  "generated_at": "2026-11-09T15:13:24.480188+00:00",
   "executed_code_cells": 11,
   "notebook": {
     "name": "01_macroeconomic_eda.ipynb",
-    "sha256": "d8265b6bf6fa70cff64a6a9baeb77575dbb00725cf882f7d7eba6300dc8eb839"
+    "sha256": "c473baf8031b58a9284cd97cc9b6af8e3bf20d0d5066fc9f25845c162c7f983f"
   },
   "files": {
-    "eda.html": "11d6fec737f6cb520509fb69b979b9683e07d9f25dfb742ce9f25dc2fad0941a",
-    "analysis_summary.json": "f93df44d6f718041a064b936979e8e567bf5d510de71890a7cb117273ef96205",
-    "findings.md": "cca62c5a5afb2eb1985ce08db38e0004fa1abfce75a538e26dc7256700bc625c",
+    "eda.html": "d160d2f8f088b7a22bbd58a8e4dc7185eb14a5ee975a96deec0fae286ec130a1",
+    "analysis_summary.json": "5e5894c77ff5c1b588bc9f19a34344e65a5c06c2c0368fa67afeb8a0c7e8a084",
+    "findings.md": "8946976466347490e05250d0f012ecb1b7dbbbbf6804800c97b9b068072d6043",
     "monthly_indicators.csv": "c001b35c607ae16de7b1cbb2471444aaa79c6a28c312123cc53ea99ae37298d2",
     "descriptive_statistics.csv": "2b5bb312dee4e28d979fde984e8cf118aee63a9043b3781a952cc4ed40e7fc95",
-    "correlation_levels.csv": "1dc6a7cd650846f7620e99ba7a749c0858e6f175c575cd8b51c89ec143a34dec",
-    "correlation_changes.csv": "25a5eba4f2d5acd535ac5b5dba8298e4a8021a9e49d13cfe6c2c2d750a0f8ef7",
-    "lag_correlations.csv": "cbcd7e22b54ee743c4844280d276855719457f0cfff0b4f1446018524515bc46",
-    "figures/historical_trends.png": "c235ea8408e286fc417cb57ca13a8c9992718617850b28ca743755e185468df2",
-    "figures/inflation_and_policy.png": "469af0d7c79c072b57faef1d02c8ab1ee6a1d60689d97a90207e1919edb53906",
-    "figures/correlations.png": "9163dbd629bac47d6f477ad4ac3f0a64bd1a5b4616e710999aa660c8a9917fde",
-    "figures/relationship_stability.png": "90df3beb0d67f741879893c7f6a3f7424dcaa5067e88c59649910979b610d567"
+    "correlation_levels.csv": "a49b08ed319dd23023ca43ef312124e556538db7340ed5610f11b598289b3a85",
+    "correlation_changes.csv": "8f9f2848c7ddca5f8de9129c70b04dc9e50e68acab623836573d93ec777a1064",
+    "lag_correlations.csv": "3b585525e97778626dd88c41168248849cf93d9164a9c0fbea728aa1e8352e5a",
+    "figures/historical_trends.png": "e795b2bdf08f522225e3509e5b47e754fe6885475e26ea1012e281479c4877e8",
+    "figures/inflation_and_policy.png": "b78316d17bda5bf6158996ce60386e8b667f2c983c1fd00169082a5ef008202b",
+    "figures/correlations.png": "0b6cbef874e1ce3e2e6496a8bf45c25ac6d91e819f240aa706e0487a7d438307",
+    "figures/relationship_stability.png": "74b49d2f929cde2f916e7bca6d56284d8cd07667567c358d1b58f3e874ab954d"
   }
 }

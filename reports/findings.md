@@ -1,6 +1,6 @@
 # Empirical findings
 
-The validated snapshot spans January 2000–October 2026 (322 monthly rows), using the FRED vintage dated 2026-11-08.
+The validated snapshot spans January 2000–October 2026 (322 monthly rows), using the FRED vintage dated 2026-11-09.
 
 Unemployment peaked at 14.8% in April 2020; its latest available value is 4.1% (October 2026). The peak identifies the largest labor-market disruption in this sample; three series alone cannot identify its causes.
 

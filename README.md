@@ -56,7 +56,7 @@ The dashboard reads SQLite directly. Refreshing its display does not fetch new A
 
 ## Key findings
 
-The included **2026-11-08 vintage** contains **322 monthly observations, January 2000–October 2026**.
+The latest committed analysis uses the **2026-11-09 vintage** and contains **322 monthly observations, January 2000–October 2026**. Offline replay retains the archived **2026-11-08 vintage**; the published observation values are unchanged between these two runs.
 
 - **The 2020 labor-market shock:** unemployment reached **14.8% in April 2020**, the largest value in this sample.
 - **Inflation and policy moved on different timelines:** seasonally adjusted CPI YoY inflation peaked at **8.98% in June 2022**. The monthly effective federal funds rate was **1.21%** then, **4.10% in December 2022**, and **5.33% in August 2023**. This sequence describes timing; it does not identify a causal policy effect.
