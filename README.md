@@ -56,7 +56,7 @@ The dashboard reads SQLite directly. Refreshing its display does not fetch new A
 
 ## Unemployment by Race & Ethnicity
 
-Choose **Unemployment by Race and Ethnicity** in the dashboard's page navigation. This separate page adds four latest-value cards, selectable trend lines, simple preset/custom date ranges, a Black–White gap chart, federal-funds comparisons, and CSV downloads. The original macroeconomic page retains its full-history display.
+Click **Open Unemployment by Race & Ethnicity** directly below the main dashboard title, or choose the page in the sidebar navigation. This separate page adds four latest-value cards, selectable trend lines, simple preset/custom date ranges, a Black–White gap chart, federal-funds comparisons, and CSV downloads. The original macroeconomic page retains its full-history display.
 
 | Group | FRED series | Coverage / units |
 |---|---|---|

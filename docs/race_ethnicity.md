@@ -39,7 +39,7 @@ The combined notebook contains a dedicated demographic section. Its charts and t
 
 ## Dashboard and operation
 
-Open [localhost:8501](http://localhost:8501) after Run, then select **Unemployment by Race and Ethnicity** in the page navigation. Latest cards use the full dataset and display each observation month. Charts, selected-period statistics, gap summaries, and CSV downloads use the selected range. Choose full history, the last five years, a crisis preset, or custom dates; custom dates include the entire selected calendar months. Group selection controls the trend lines and downloaded rate columns. The gap always compares Black and White rates. The expandable crisis table uses fixed analysis windows, independent of chart filtering.
+Open [localhost:8501](http://localhost:8501) after Run, then click **Open Unemployment by Race & Ethnicity** directly below the main title. The page is also available through the sidebar navigation. Latest cards use the full dataset and display each observation month. Charts, selected-period statistics, gap summaries, and CSV downloads use the selected range. Choose full history, the last five years, a crisis preset, or custom dates; custom dates include the entire selected calendar months. Group selection controls the trend lines and downloaded rate columns. The gap always compares Black and White rates. The expandable crisis table uses fixed analysis windows, independent of chart filtering.
 
 The original macroeconomic page retains all its features and full-history behavior. Both pages read SQLite directly; Refresh database reloads local data rather than contacting FRED. Run updates the source data and regenerates analysis. The DAG still has no timed schedule.
 

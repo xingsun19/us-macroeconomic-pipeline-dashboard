@@ -22,6 +22,7 @@ st.markdown("""<style>
 [data-testid="stSidebar"] {background: #142c3a;}
 [data-testid="stSidebar"] * {color: #eff6f8;}
 [data-testid="stSidebar"] [data-baseweb="select"] * {color: #142c3a;}
+[data-testid="stSidebar"] [data-testid="stButton"] button * {color: #142c3a;}
 [data-testid="stMetric"] {background: white; border: 1px solid #dce5e8; border-radius: 12px; padding: 20px 22px;}
 [data-testid="stMetricValue"] {font-family: Georgia, serif; color: #142c3a;}
 .eyebrow {font-size: .76rem; font-weight: 700; letter-spacing: .18em; color: #008c95;}
@@ -65,6 +66,11 @@ with st.sidebar:
 
 st.markdown('<div class="eyebrow">RESEARCH DESK / UNITED STATES</div>', unsafe_allow_html=True)
 st.title("The economy, in perspective.")
+with st.container(border=True):
+    st.page_link("pages/1_Unemployment_by_Race_and_Ethnicity.py",
+                 label="Open Unemployment by Race & Ethnicity", icon="👥",
+                 use_container_width=True)
+    st.caption("Compare White, Black, Asian, and Hispanic or Latino unemployment rates, including the Black–White gap.")
 if os.getenv("MACRO_OFFLINE") == "1":
     st.info(f"Archived snapshot · FRED vintage {run['as_of']}. Offline reproduction; these are historical results, not a live update.")
 st.markdown('<p class="intro">Explore the relationship between jobs, prices, and monetary policy. The full history of three defining U.S. economic indicators, from 2000 onward.</p>', unsafe_allow_html=True)
