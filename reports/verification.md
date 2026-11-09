@@ -7,6 +7,7 @@ Verified on **November 8, 2026 (America/Chicago)**. Container/audit timestamps u
 | Native Python application tests | 53 passed, 1 Airflow-specific test deselected; Python 3.13.5 |
 | Linux Docker application tests | 53 passed, 1 Airflow-specific test deselected; Python 3.11.18 |
 | Application coverage | 94% statement coverage (582 statements, 33 not covered) |
+| GitHub Actions | Both jobs passed on GitHub-hosted Ubuntu: 53 application tests, 1 Airflow graph test, and real archived-data reproduction; no API credentials |
 | Airflow import/dependency graph | 1 passed in the Apache Airflow 3.1.8 container |
 | Real `dag.test()` execution | All seven tasks succeeded, including live FRED requests, SQLite publication, and notebook/report generation |
 | Earlier scheduler/LocalExecutor verification | Run `verification_daily_analysis`: SUCCESS; all seven tasks SUCCESS; the current deployment uses on-demand execution |
@@ -45,7 +46,7 @@ Minor dependency warnings were emitted by Matplotlib/Jupyter; the official Airfl
 
 ## Scope and evidence
 
-The executed notebook, generated statistics/figures, findings, and this report are repository artifacts. Working SQLite files, per-run raw history, temporary logs, and credentials remain local; a reviewed raw-data archive is included under snapshots/. The CI template uses offline fixtures and checks DAG structure without a FRED secret; live end-to-end verification was performed locally with the configured key. The CI configuration includes fixture-based application checks, real archived-data reproduction, and an Airflow graph check. Remote CI status is recorded separately after publication.
+The executed notebook, generated statistics/figures, findings, and this report are repository artifacts. Working SQLite files, per-run raw history, temporary logs, and credentials remain local; a reviewed raw-data archive is included under `snapshots/`. Live end-to-end verification was performed locally with the configured key. The active [GitHub Actions workflow](../.github/workflows/ci.yml) uses no FRED secret. [Run 42559034886](https://github.com/xingsun19/us-macroeconomic-pipeline-dashboard/actions/runs/42559034886), at commit `3481ee2`, passed both jobs: 53 application tests with 94% coverage, one Airflow graph test, and archived-data reconstruction yielding 322 rows and 11 executed notebook code cells. CI runs on pushes and pull requests, separately from the on-demand local deployment.
 
 This is a local, on-demand Docker deployment. The daily schedule has been removed. The host only needs to be available while running or viewing the dashboard; HTML reports remain usable with Docker stopped. No claim is made about five years of uninterrupted third-party service availability.
 

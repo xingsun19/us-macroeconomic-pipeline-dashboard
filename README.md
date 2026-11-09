@@ -1,5 +1,7 @@
 # U.S. Macroeconomic Data Pipeline & Dashboard
 
+[![Test and reproduce](https://github.com/xingsun19/us-macroeconomic-pipeline-dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/xingsun19/us-macroeconomic-pipeline-dashboard/actions/workflows/ci.yml)
+
 **Northwestern University · Topics in Data Engineering · Fall 2026**
 
 Our project examines U.S. unemployment, consumer prices, and monetary policy from 2000 onward. We collect FRED data, validate and store it in SQLite, orchestrate the pipeline with Apache Airflow, and present the results in Jupyter and an independent Streamlit dashboard.

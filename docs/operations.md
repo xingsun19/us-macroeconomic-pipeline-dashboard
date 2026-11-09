@@ -28,7 +28,7 @@ docker compose stop postgres
 bash scripts/run.sh --batch
 ```
 
-The smoke test calls the live FRED API and skips no tasks. It disables retries only in its own process to fail promptly. Production tasks retain two retries, a two-minute delay, and ten-minute task timeouts; the DAG timeout is 45 minutes. The included CI template runs deterministic synthetic fixtures and separately checks the real DAG; fixtures are never used by production ingestion.
+The smoke test calls the live FRED API and skips no tasks. It disables retries only in its own process to fail promptly. Production tasks retain two retries, a two-minute delay, and ten-minute task timeouts; the DAG timeout is 45 minutes. The [GitHub Actions workflow](../.github/workflows/ci.yml) runs application tests, reproduces the real archived snapshot, and separately checks the Airflow DAG. It needs no FRED secret and runs on GitHub-hosted runners for pushes and pull requests. It does not schedule local updates. Synthetic fixtures are used only in tests.
 
 The Run launcher initializes/migrates Airflow's metadata database, then uses Airflow's local `dag.test()` execution mode with the real operators, FRED API, SQLite publication, production retries, and persistent PostgreSQL audit records. The temporary container is removed after execution; it does not launch a recurring scheduler. For optional UI inspection, explicitly start `docker compose up -d --build airflow` and open [http://localhost:8080](http://localhost:8080) as `admin`. Read its local password with `docker compose exec airflow cat /opt/airflow/state/passwords.json`. Stop it afterward using `docker compose stop airflow postgres`. Even in UI mode, `schedule=None` disables timed runs.
 
