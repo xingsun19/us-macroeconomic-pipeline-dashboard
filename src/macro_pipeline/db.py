@@ -9,6 +9,15 @@ import pandas as pd
 VALUE_COLUMNS = ["unrate", "cpiaucsl", "fedfunds", "cpi_yoy", "cpi_mom", "unrate_change_pp", "fedfunds_change_pp", "real_rate_proxy"]
 STATUS_COLUMNS = ["unrate_status", "cpiaucsl_status", "fedfunds_status"]
 MONTHLY_COLUMNS = ["date", *VALUE_COLUMNS, *STATUS_COLUMNS]
+RACE_COLUMNS = ["white", "black", "asian", "hispanic"]
+RACE_STATUS_COLUMNS = [f"{c}_status" for c in RACE_COLUMNS]
+RACE_MONTHLY_COLUMNS = ["date", *RACE_COLUMNS, "black_white_gap_pp", *RACE_STATUS_COLUMNS]
+RACE_FIELDS = """
+    date TEXT NOT NULL,
+    white REAL, black REAL, asian REAL, hispanic REAL, black_white_gap_pp REAL,
+    white_status TEXT NOT NULL, black_status TEXT NOT NULL,
+    asian_status TEXT NOT NULL, hispanic_status TEXT NOT NULL
+"""
 MONTHLY_FIELDS = """
     date TEXT NOT NULL,
     unrate REAL, cpiaucsl REAL, fedfunds REAL,
@@ -43,11 +52,15 @@ CREATE TABLE IF NOT EXISTS staged_monthly (
     run_id TEXT NOT NULL REFERENCES pipeline_runs(run_id), {MONTHLY_FIELDS}, PRIMARY KEY (run_id, date)
 );
 CREATE TABLE IF NOT EXISTS monthly_indicators ({MONTHLY_FIELDS}, PRIMARY KEY (date));
+CREATE TABLE IF NOT EXISTS staged_race_unemployment (
+    run_id TEXT NOT NULL REFERENCES pipeline_runs(run_id), {RACE_FIELDS}, PRIMARY KEY (run_id, date)
+);
+CREATE TABLE IF NOT EXISTS race_unemployment ({RACE_FIELDS}, PRIMARY KEY (date));
 CREATE TABLE IF NOT EXISTS dataset_state (
     singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
     run_id TEXT NOT NULL REFERENCES pipeline_runs(run_id), published_at TEXT NOT NULL
 );
-PRAGMA user_version = 1;
+PRAGMA user_version = 2;
 """
 
 
@@ -88,3 +101,26 @@ def read_dataset(path):
     if frame.empty or run is None:
         raise ValueError("No published data. Run macro-pipeline update first.")
     return frame.set_index("date"), dict(run)
+
+
+def read_race_dataset(path):
+    """Read demographics and the policy rate from the same published transaction."""
+    with connect(path, readonly=True) as conn:
+        conn.execute("BEGIN")
+        exists = conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='race_unemployment'").fetchone()
+        if not exists:
+            raise ValueError("Run the updated pipeline to load race and ethnicity data.")
+        frame = pd.read_sql_query(
+            "SELECT r.*, m.fedfunds, m.fedfunds_status FROM race_unemployment r "
+            "JOIN monthly_indicators m USING(date) ORDER BY r.date", conn, parse_dates=["date"])
+        run = conn.execute("SELECT r.*, s.published_at FROM dataset_state s JOIN pipeline_runs r USING(run_id)").fetchone()
+    if frame.empty or run is None:
+        raise ValueError("This snapshot has no race and ethnicity data. Run the updated pipeline or replay the current archive.")
+    return frame.set_index("date"), dict(run)
+
+
+def has_race_data(path):
+    """Support original databases and legacy archives without inventing observations."""
+    with connect(path, readonly=True) as conn:
+        exists = conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='race_unemployment'").fetchone()
+        return bool(exists and conn.execute("SELECT 1 FROM race_unemployment LIMIT 1").fetchone())

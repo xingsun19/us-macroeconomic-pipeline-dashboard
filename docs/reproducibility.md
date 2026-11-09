@@ -2,9 +2,9 @@
 
 ## Included real-data archive
 
-`snapshots/fred-2026-11-08.json` is the original raw response bundle from a successful FRED ingestion, including series metadata, observation dates, values, vintage fields, and the 1999 warm-up year. It is real source data, distinct from the synthetic unit-test fixtures. `snapshots/manifest.json` records its SHA-256, vintage, source links, capture run, retrieval time, observation counts, and published coverage. No API key, request URL containing credentials, or local database path is included.
+`snapshots/fred-2026-11-09.json` is the original raw response bundle from a successful FRED ingestion, including all seven series, metadata, observation dates, values, vintage fields, and the 1999 macroeconomic warm-up year. It is real source data, distinct from the synthetic unit-test fixtures. `snapshots/manifest.json` records its SHA-256, vintage, source links, capture run, retrieval time, observation counts, and published coverage. No API key, request URL containing credentials, or local database path is included.
 
-The archived vintage produces 322 monthly rows from January 2000 through October 2026. It preserves official missing observations. Validation uses the archived vintage date, so the snapshot does not fail freshness checks simply because the calendar has advanced.
+The default archived vintage produces 322 macroeconomic rows (January 2000–October 2026) and 286 race/ethnicity rows (January 2003–October 2026). The original three-series archive remains available through `snapshots/manifest-macro-2026-11-08.json`. It preserves official missing observations. Validation uses the archived vintage date, so the snapshot does not fail freshness checks simply because the calendar has advanced.
 
 ## Offline replay
 
@@ -27,7 +27,7 @@ The replay container has `network_mode: none`, pulls no images, and receives no 
 | Rebuilt database and raw replay audit | `data/offline/` |
 | HTML report | `reports/offline/eda.html` |
 | Executed notebook | `reports/offline/01_macroeconomic_eda.ipynb` |
-| Charts, statistics, data, and findings | `reports/offline/` |
+| Charts, statistics, data, and findings | `reports/offline/`, including the `race/` subdirectory |
 | Archive provenance and report hashes | `reports/offline/snapshot_provenance.json`, `reports/offline/report_manifest.json` |
 
 Live files remain in `data/macroeconomics.db`, `reports/`, and `notebooks/`. Offline outputs do not overwrite them. The snapshot demonstrates historical reproducibility; it does not provide future observations.

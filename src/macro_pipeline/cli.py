@@ -8,7 +8,8 @@ import json
 import sys
 
 from .config import Settings
-from .db import read_dataset
+from .db import read_dataset, read_race_dataset, has_race_data
+from .demographics import validate_race_monthly
 from .pipeline import run_pipeline
 from .transform import validate_monthly
 from .transform import QualityError
@@ -41,6 +42,21 @@ def main():
                 result = write_analysis(frame, run, args.output)
             else:
                 result = {"run_id": run["run_id"], "status": run["status"], "as_of": run["as_of"], "published_at": run["published_at"], "rows": len(frame)}
+            if has_race_data(settings.db_path):
+                race, race_run = read_race_dataset(settings.db_path)
+                if race_run["run_id"] != run["run_id"]:
+                    raise QualityError("The dataset changed during the command; retry against the current publication.")
+                if args.command == "validate":
+                    result["demographics"] = validate_race_monthly(race.reset_index(), run["as_of"])
+                elif args.command == "export":
+                    folder = args.output / "race"
+                    folder.mkdir(parents=True, exist_ok=True)
+                    race.to_csv(folder / "monthly_unemployment.csv", index_label="date")
+                    result["demographic_export"] = str(folder / "monthly_unemployment.csv")
+                elif args.command == "analyze":
+                    from .race_analysis import write_race_analysis
+                    result["demographics"] = write_race_analysis(race, run, args.output)
+                result["demographic_rows"] = len(race)
         print(json.dumps(result, indent=2, allow_nan=False))
     except (QualityError, FredError) as exc:
         print(f"{type(exc).__name__}: {exc}", file=sys.stderr)

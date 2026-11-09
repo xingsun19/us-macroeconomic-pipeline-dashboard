@@ -1,8 +1,14 @@
 from pathlib import Path
 import inspect
+import subprocess
+import sys
 import pytest
 
 pytestmark = pytest.mark.airflow
+
+
+def test_report_task_import_keeps_analysis_dependencies_isolated():
+    subprocess.run([sys.executable, "-c", "import sys; import macro_pipeline.reporting; assert 'matplotlib' not in sys.modules; assert 'nbconvert' not in sys.modules"], check=True)
 
 
 def test_dag_import_and_dependency_graph():

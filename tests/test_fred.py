@@ -55,3 +55,11 @@ def test_empty_page_rejected():
 def test_missing_key_rejected_without_display():
     with pytest.raises(FredError, match="FRED_API_KEY"):
         FredClient("")
+
+
+@responses.activate
+@pytest.mark.parametrize('adjustment,units', [('NSA', 'Percent'), ('SA', 'Number')])
+def test_demographic_series_requires_adjusted_percent_metadata(adjustment, units):
+    responses.get(f"{BASE_URL}/series", json={'seriess': [{'id': 'LNS14032183', 'frequency_short': 'M', 'seasonal_adjustment_short': adjustment, 'units': units}]})
+    with pytest.raises(FredError, match='seasonally adjusted percent'):
+        FredClient(KEY).fetch_series('LNS14032183', '2003-01-01', '2024-07-15')

@@ -6,6 +6,7 @@ import re
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+from .config import RACE_SERIES
 
 BASE_URL = "https://api.stlouisfed.org/fred"
 
@@ -47,6 +48,8 @@ class FredClient:
         meta = self._get("series", series_id=series_id, **vintage).get("seriess", [])
         if len(meta) != 1 or meta[0].get("id") != series_id or meta[0].get("frequency_short") != "M":
             raise FredError(f"Unexpected monthly series metadata for {series_id}.")
+        if series_id in RACE_SERIES and (meta[0].get("seasonal_adjustment_short") != "SA" or meta[0].get("units") != "Percent"):
+            raise FredError(f"Expected seasonally adjusted percent data for {series_id}.")
         rows, offset = [], 0
         while True:
             page = self._get("series/observations", series_id=series_id, observation_start=start, observation_end=end,

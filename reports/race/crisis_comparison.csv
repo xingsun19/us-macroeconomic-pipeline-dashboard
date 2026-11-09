@@ -1,0 +1,9 @@
+window,group,baseline_month,baseline_rate,peak_month,peak_rate,peak_change_pp,last_observed_month,last_rate,observed_months
+Financial crisis and aftermath (2008–2010),white,2007-12,4.4,2009-10,9.2,4.799999999999999,2010-12,8.5,36
+Financial crisis and aftermath (2008–2010),black,2007-12,9.0,2010-03,16.8,7.800000000000001,2010-12,15.5,36
+Financial crisis and aftermath (2008–2010),asian,2007-12,3.7,2009-12,8.4,4.7,2010-12,7.2,36
+Financial crisis and aftermath (2008–2010),hispanic,2007-12,6.3,2009-08,13.0,6.7,2010-12,12.9,36
+Pandemic shock and aftermath (2020–2021),white,2020-02,3.0,2020-04,14.2,11.2,2021-12,3.3,22
+Pandemic shock and aftermath (2020–2021),black,2020-02,6.1,2020-04,16.9,10.799999999999999,2021-12,7.0,22
+Pandemic shock and aftermath (2020–2021),asian,2020-02,2.5,2020-05,15.0,12.5,2021-12,3.8,22
+Pandemic shock and aftermath (2020–2021),hispanic,2020-02,4.4,2020-04,18.9,14.499999999999998,2021-12,4.7,22

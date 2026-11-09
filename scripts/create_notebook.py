@@ -26,7 +26,7 @@ The deliverable covers API ingestion, database storage, an executable end-to-end
 | [CPIAUCSL](https://fred.stlouisfed.org/series/CPIAUCSL) | All-items urban consumer price index (BLS) | 1982–84 = 100 | Seasonally adjusted |
 | [FEDFUNDS](https://fred.stlouisfed.org/series/FEDFUNDS) | Effective federal funds rate (Federal Reserve) | Percent, monthly average of daily figures | Not seasonally adjusted |
 
-The published analysis begins in January 2000. Raw ingestion also retrieves 1999 to provide a twelve-month warm-up for inflation. API requests specify the same FRED real-time/vintage date for all three series. A full-history refresh on each requested run captures revisions. Raw JSON, checksums, metadata, run statuses, and stage durations are retained locally.
+The published analysis begins in January 2000. Raw ingestion also retrieves 1999 to provide a twelve-month warm-up for inflation. API requests specify the same FRED real-time/vintage date for all seven series. A full-history refresh on each requested run captures revisions. Raw JSON, checksums, metadata, run statuses, and stage durations are retained locally.
 
 **Missing data policy:** preserve explicit FRED `.` as null; distinguish it from unreleased trailing months. Reject omitted calendar months, implausible values, stale series, and source-missing shares above 5%. Never forward-fill or interpolate observations. Percentage changes explicitly disable implicit filling. Each statistic excludes only the nulls relevant to that calculation.
 """),
@@ -122,6 +122,61 @@ display(lag_table.groupby('outcome').agg(min_pairs=('n', 'min'), max_pairs=('n',
 assert all((report_dir / item).is_file() for item in expected)
 display(Markdown(f'**Execution complete:** {len(df)} monthly rows analyzed. Reports and figures are available in `reports/`.'))"""),
 ]
+
+# Keep the original macroeconomic analysis intact and add a dedicated module.
+nb.cells[-1:-1] = [
+    md("""### 9. Unemployment by Race & Ethnicity
+
+Four monthly, seasonally adjusted BLS CPS rates are aligned from January 2003: [White](https://fred.stlouisfed.org/series/LNS14000003), [Black or African American](https://fred.stlouisfed.org/series/LNS14000006), [Asian](https://fred.stlouisfed.org/series/LNS14032183), and [Hispanic or Latino](https://fred.stlouisfed.org/series/LNS14000009). January 2003 provides a common starting point after CPS classification changes.
+
+**Hispanic/Latino is an ethnicity, not an exclusive race category.** Hispanic people may be of any race and are included in the race series. These overlapping group rates must not be added or treated as shares. Rates use each group's civilian labor force, age 16+, as denominator. See [BLS definitions](https://www.bls.gov/cps/definitions.htm#hispanic). Official seasonal adjustment is supplied by BLS; we verify the metadata and do not adjust the rates again.
+
+The Black–White gap is the Black rate minus the White rate, in **percentage points**. Both observations must be available for the same month. All missing observations remain null.
+"""),
+    code("""from macro_pipeline.db import read_race_dataset, has_race_data, RACE_COLUMNS
+from macro_pipeline.demographics import CATEGORY_NOTE, CAUSAL_NOTE, validate_race_monthly
+from macro_pipeline.race_analysis import write_race_analysis, crisis_comparison, annual_summary, policy_correlations
+race = pd.DataFrame()
+if has_race_data(settings.db_path):
+    race, race_run = read_race_dataset(settings.db_path)
+    assert race_run['run_id'] == run['run_id']
+    race_quality = validate_race_monthly(race.reset_index(), run['as_of'])
+    race_analysis = write_race_analysis(race, run, report_dir)
+    display(Markdown(CATEGORY_NOTE))
+    display(pd.DataFrame(race_quality['series']).T)
+    display(race[RACE_COLUMNS + ['black_white_gap_pp']].describe().T.round(3))
+else:
+    display(Markdown('This legacy snapshot contains the original macroeconomic series only. Run the updated pipeline or replay the current seven-series archive for the demographic module.'))"""),
+    md("""#### Long-term trends and the Black–White gap
+
+We compare rates on a common percent scale and report the gap in percentage points. Annual means exclude nulls and show observed-month counts; incomplete years are not full-year averages. A sample average does not describe every person or explain why a disparity exists.
+"""),
+    code("""if not race.empty:
+    display(Image(filename=str(report_dir / 'race/figures/trends.png')))
+    display(Image(filename=str(report_dir / 'race/figures/black_white_gap.png')))
+    display(annual_summary(race).tail(20).round(3))
+    display(race[['black_white_gap_pp']].describe().T.round(3))"""),
+    md("""#### The 2008 financial crisis and the 2020 pandemic
+
+For the financial crisis, the baseline is **December 2007**, and the peak search spans **January 2008–December 2010**, including the lagging labor-market aftermath. For the pandemic, the baseline is **February 2020**, and the peak search spans **March 2020–December 2021**. These stated comparison windows are not official recession dates. Each group's peak can occur in a different month; a baseline-to-peak change is descriptive, not a causal estimate of an event's effect.
+"""),
+    code("""if not race.empty:
+    display(crisis_comparison(race).round(3))
+    display(Image(filename=str(report_dir / 'race/figures/crisis_comparison.png')))"""),
+    md("""#### Relationships with the federal funds rate
+
+The rate is joined from the same SQLite publication by observation month. We compare levels with monthly changes and report 0-, 6-, and 12-month outcome lags with paired sample sizes. Positive lag k pairs federal funds at t with the group's unemployment or gap at t+k. Differences and shifts are computed before dropping nulls. FEDFUNDS is a monthly average and is not seasonally adjusted.
+
+Policy responds to economic conditions, and the series exhibit autocorrelation and structural changes. These associations cannot identify the effect of monetary policy on any group. Lag searches are exploratory. CPS sampling uncertainty is not estimated from these aggregate series.
+"""),
+    code("""if not race.empty:
+    display(policy_correlations(race).round(3))
+    display(Image(filename=str(report_dir / 'race/figures/policy_relationships.png')))
+    for item in race_analysis['findings']:
+        display(Markdown(item))
+    display(Markdown(CAUSAL_NOTE))"""),
+]
+
 dest = root / "notebooks/01_macroeconomic_eda.ipynb"
 dest.parent.mkdir(parents=True, exist_ok=True)
 nbf.write(nb, dest)

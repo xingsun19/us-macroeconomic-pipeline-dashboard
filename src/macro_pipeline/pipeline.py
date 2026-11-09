@@ -10,8 +10,9 @@ import uuid
 
 import pandas as pd
 
-from .config import Settings, SERIES, WARMUP_DATE
-from .db import MONTHLY_COLUMNS, connect, initialize, read_dataset
+from .config import Settings, SERIES, ALL_SERIES, RACE_SERIES, RACE_START_DATE, WARMUP_DATE
+from .db import MONTHLY_COLUMNS, RACE_MONTHLY_COLUMNS, connect, initialize, read_dataset, read_race_dataset
+from .demographics import clean_race_monthly, validate_race_monthly
 from .fred import FredClient
 from .transform import QualityError, clean_monthly, validate_monthly
 
@@ -61,7 +62,9 @@ def extract(settings: Settings, run_id=None, client=None):
     with stage(settings, run_id, "extract_api"):
         client = client or FredClient(settings.api_key)
         end = existing["as_of"]
-        payload = {"schema_version": 1, "as_of": end, "fetched_at": now(), "series": {sid: client.fetch_series(sid, WARMUP_DATE, end) for sid in SERIES}}
+        series = ALL_SERIES if settings.include_demographics else SERIES
+        payload = {"schema_version": 2 if settings.include_demographics else 1, "as_of": end, "fetched_at": now(),
+                   "series": {sid: client.fetch_series(sid, RACE_START_DATE if sid in RACE_SERIES else WARMUP_DATE, end) for sid in series}}
         content = json.dumps(payload, sort_keys=True, allow_nan=False).encode()
         dest = settings.data_dir / "raw" / f"{run_id}.json"
         dest.parent.mkdir(parents=True, exist_ok=True)
@@ -80,11 +83,16 @@ def store_raw(settings, run_id):
         if hashlib.sha256(content).hexdigest() != run["raw_sha256"]:
             raise QualityError("Raw snapshot checksum mismatch.")
         payload = json.loads(content)
-        if set(payload["series"]) != set(SERIES):
+        if set(payload["series"]) != set(ALL_SERIES if settings.include_demographics else SERIES):
             raise QualityError("Incomplete raw snapshot.")
         with connect(settings.db_path) as conn:
             conn.execute("DELETE FROM raw_observations WHERE run_id=?", (run_id,))
             for sid, source in payload["series"].items():
+                if sid in RACE_SERIES and (source["metadata"].get("id") != sid
+                        or source["metadata"].get("frequency_short") != "M"
+                        or source["metadata"].get("seasonal_adjustment_short") != "SA"
+                        or source["metadata"].get("units") != "Percent"):
+                    raise QualityError(f"Invalid seasonally adjusted monthly percent metadata for {sid}.")
                 conn.execute("INSERT OR REPLACE INTO raw_payloads VALUES (?, ?, ?, ?)", (run_id, sid, json.dumps(source["metadata"]), json.dumps(source["observations"])))
                 unique = {}
                 for obs in source["observations"]:
@@ -100,12 +108,19 @@ def clean(settings, run_id):
     with stage(settings, run_id, "clean_transform"):
         with connect(settings.db_path, readonly=True) as conn:
             raw = pd.read_sql_query("SELECT series_id, date, value_text FROM raw_observations WHERE run_id=? ORDER BY series_id, date", conn, params=(run_id,))
-        frame = clean_monthly(raw, get_run(settings, run_id)["as_of"])
+        as_of = get_run(settings, run_id)["as_of"]
+        frame = clean_monthly(raw.loc[raw.series_id.isin(SERIES)], as_of)
+        race = clean_race_monthly(raw.loc[raw.series_id.isin(RACE_SERIES)], as_of, frame.date.max()) if settings.include_demographics else None
         frame["date"] = frame.date.dt.strftime("%Y-%m-%d")
         records = frame.astype(object).where(frame.notna(), None).itertuples(index=False, name=None)
         with connect(settings.db_path) as conn:
             conn.execute("DELETE FROM staged_monthly WHERE run_id=?", (run_id,))
             conn.executemany(f"INSERT INTO staged_monthly VALUES ({','.join('?' for _ in range(len(MONTHLY_COLUMNS)+1))})", ((run_id, *row) for row in records))
+            conn.execute("DELETE FROM staged_race_unemployment WHERE run_id=?", (run_id,))
+            if race is not None:
+                race["date"] = race.date.dt.strftime("%Y-%m-%d")
+                race_records = race.astype(object).where(race.notna(), None).itertuples(index=False, name=None)
+                conn.executemany(f"INSERT INTO staged_race_unemployment VALUES ({','.join('?' for _ in range(len(RACE_MONTHLY_COLUMNS)+1))})", ((run_id, *row) for row in race_records))
             conn.execute("UPDATE pipeline_runs SET status='CLEANED', error_type=NULL WHERE run_id=?", (run_id,))
     return run_id
 
@@ -115,6 +130,10 @@ def validate(settings, run_id):
         with connect(settings.db_path, readonly=True) as conn:
             frame = pd.read_sql_query("SELECT * FROM staged_monthly WHERE run_id=? ORDER BY date", conn, params=(run_id,))
         summary = validate_monthly(frame, get_run(settings, run_id)["as_of"])
+        if settings.include_demographics:
+            with connect(settings.db_path, readonly=True) as conn:
+                race = pd.read_sql_query("SELECT * FROM staged_race_unemployment WHERE run_id=? ORDER BY date", conn, params=(run_id,))
+            summary["demographics"] = validate_race_monthly(race, get_run(settings, run_id)["as_of"])
         with connect(settings.db_path) as conn:
             conn.execute("UPDATE pipeline_runs SET status='VALIDATED', validation_json=?, error_type=NULL WHERE run_id=?", (json.dumps(summary), run_id))
     return run_id
@@ -135,6 +154,10 @@ def publish(settings, run_id):
             cols = ','.join(MONTHLY_COLUMNS)
             conn.execute("DELETE FROM monthly_indicators")
             conn.execute(f"INSERT INTO monthly_indicators({cols}) SELECT {cols} FROM staged_monthly WHERE run_id=?", (run_id,))
+            # Both modules switch together; a legacy archive must not leave stale demographic rows.
+            race_cols = ','.join(RACE_MONTHLY_COLUMNS)
+            conn.execute("DELETE FROM race_unemployment")
+            conn.execute(f"INSERT INTO race_unemployment({race_cols}) SELECT {race_cols} FROM staged_race_unemployment WHERE run_id=?", (run_id,))
             conn.execute("INSERT OR REPLACE INTO dataset_state VALUES (1, ?, ?)", (run_id, now()))
             conn.execute("UPDATE pipeline_runs SET status='SUCCESS', completed_at=?, error_type=NULL WHERE run_id=?", (now(), run_id))
     return run_id
@@ -146,6 +169,11 @@ def verify(settings, run_id):
         if run["run_id"] != run_id:
             raise QualityError("The published run differs from the expected run.")
         validate_monthly(frame.reset_index(), run["as_of"])
+        if settings.include_demographics:
+            race, race_run = read_race_dataset(settings.db_path)
+            if race_run["run_id"] != run_id:
+                raise QualityError("Demographic publication differs from the expected run.")
+            validate_race_monthly(race.reset_index(), run["as_of"])
     return json.loads(get_run(settings, run_id)["validation_json"])
 
 

@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "file": "fred-2026-11-08.json",
+  "sha256": "27d6ec5abfe07a0821075f8e6936ee10fdcfdb613d9a8e8a8f51ee3adf4d0ae4",
+  "as_of": "2026-11-08",
+  "captured_run_id": "1d8822fbb4ba7bf6ce594a3b1aa6715a",
+  "source_fetched_at": "2026-11-09T03:24:08.554570+00:00",
+  "observation_counts": {
+    "CPIAUCSL": 333,
+    "FEDFUNDS": 334,
+    "UNRATE": 334
+  },
+  "published_rows": 322,
+  "published_start": "2000-01-01",
+  "published_end": "2026-10-01",
+  "source_urls": {
+    "CPIAUCSL": "https://fred.stlouisfed.org/series/CPIAUCSL",
+    "FEDFUNDS": "https://fred.stlouisfed.org/series/FEDFUNDS",
+    "UNRATE": "https://fred.stlouisfed.org/series/UNRATE"
+  }
+}

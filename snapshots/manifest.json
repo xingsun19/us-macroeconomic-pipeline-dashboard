@@ -1,21 +1,32 @@
 {
-  "schema_version": 1,
-  "file": "fred-2026-11-08.json",
-  "sha256": "27d6ec5abfe07a0821075f8e6936ee10fdcfdb613d9a8e8a8f51ee3adf4d0ae4",
-  "as_of": "2026-11-08",
-  "captured_run_id": "1d8822fbb4ba7bf6ce594a3b1aa6715a",
-  "source_fetched_at": "2026-11-09T03:24:08.554570+00:00",
+  "schema_version": 2,
+  "file": "fred-2026-11-09.json",
+  "sha256": "5561a595b2afd1da6506098b0688cb55188eab39bf8b9b870a4a4f520806bcf0",
+  "as_of": "2026-11-09",
+  "captured_run_id": "300236d027c54367b0dd18a3c031648c",
+  "source_fetched_at": "2026-11-09T17:10:07.076490+00:00",
   "observation_counts": {
     "CPIAUCSL": 333,
     "FEDFUNDS": 334,
+    "LNS14000003": 286,
+    "LNS14000006": 286,
+    "LNS14000009": 286,
+    "LNS14032183": 286,
     "UNRATE": 334
   },
   "published_rows": 322,
   "published_start": "2000-01-01",
   "published_end": "2026-10-01",
+  "demographic_rows": 286,
+  "demographic_start": "2003-01-01",
+  "demographic_end": "2026-10-01",
   "source_urls": {
     "CPIAUCSL": "https://fred.stlouisfed.org/series/CPIAUCSL",
     "FEDFUNDS": "https://fred.stlouisfed.org/series/FEDFUNDS",
+    "LNS14000003": "https://fred.stlouisfed.org/series/LNS14000003",
+    "LNS14000006": "https://fred.stlouisfed.org/series/LNS14000006",
+    "LNS14000009": "https://fred.stlouisfed.org/series/LNS14000009",
+    "LNS14032183": "https://fred.stlouisfed.org/series/LNS14032183",
     "UNRATE": "https://fred.stlouisfed.org/series/UNRATE"
   }
 }

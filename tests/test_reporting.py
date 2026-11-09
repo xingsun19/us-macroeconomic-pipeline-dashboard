@@ -15,6 +15,7 @@ from macro_pipeline.db import connect, read_dataset
 from macro_pipeline.pipeline import run_pipeline
 from macro_pipeline.reporting import REPORT_FILES, execute_analysis, run_analysis_task
 from macro_pipeline.transform import QualityError
+from macro_pipeline.race_analysis import RACE_REPORT_FILES
 
 
 @pytest.fixture
@@ -27,8 +28,13 @@ from pathlib import Path
 from macro_pipeline.config import Settings
 from macro_pipeline.db import read_dataset
 from macro_pipeline.analysis import write_analysis
+from macro_pipeline.db import read_race_dataset, has_race_data
+from macro_pipeline.race_analysis import write_race_analysis
 frame, run = read_dataset(Settings.from_env().db_path)
 write_analysis(frame, run, Path(os.environ['MACRO_REPORT_DIR']))
+if has_race_data(Settings.from_env().db_path):
+    race, _ = read_race_dataset(Settings.from_env().db_path)
+    write_race_analysis(race, run, Path(os.environ['MACRO_REPORT_DIR']))
 print(run['run_id'])"""),
         nbformat.v4.new_code_cell("assert len(frame) > 0"),
     ])
@@ -41,7 +47,7 @@ def test_real_execution_and_revision_refresh(settings, client, report_source, tm
     reports = tmp_path / "reports"
     manifest = execute_analysis(settings, report_source, reports, expected_run_id=first["run_id"])
     assert manifest["executed_code_cells"] == 2
-    assert set(manifest["files"]) == set(REPORT_FILES)
+    assert set(manifest["files"]) == set((*REPORT_FILES, *RACE_REPORT_FILES))
     for name, checksum in manifest["files"].items():
         assert hashlib.sha256((reports / name).read_bytes()).hexdigest() == checksum
     assert hashlib.sha256(report_source.read_bytes()).hexdigest() == manifest["notebook"]["sha256"]
@@ -61,7 +67,7 @@ def test_failed_notebook_preserves_reports_and_records_failed_task(settings, cli
     run = run_pipeline(settings, client)
     reports = tmp_path / "reports"
     execute_analysis(settings, report_source, reports, expected_run_id=run["run_id"])
-    published = {name: (reports / name).read_bytes() for name in (*REPORT_FILES, "report_manifest.json")}
+    published = {name: (reports / name).read_bytes() for name in (*REPORT_FILES, *RACE_REPORT_FILES, "report_manifest.json")}
     notebook = nbformat.read(report_source, as_version=4)
     notebook.cells.append(nbformat.v4.new_code_cell("raise RuntimeError('Deliberate analysis failure after writing staged figures')"))
     nbformat.write(notebook, report_source)

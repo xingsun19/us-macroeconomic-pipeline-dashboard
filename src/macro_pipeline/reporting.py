@@ -10,7 +10,7 @@ import sqlite3
 import subprocess
 import tempfile
 
-from .db import connect, read_dataset
+from .db import connect, read_dataset, read_race_dataset, has_race_data
 from .pipeline import now, stage
 from .transform import QualityError
 
@@ -65,6 +65,7 @@ def execute_analysis(settings, notebook_path, reports_dir, *, expected_run_id=No
     import nbformat
     from nbclient import NotebookClient
     from nbconvert import HTMLExporter
+    from .race_analysis import RACE_REPORT_FILES
 
     notebook_path, reports_dir = Path(notebook_path).resolve(), Path(reports_dir).resolve()
     published_notebook_path = Path(published_notebook_path).resolve() if published_notebook_path else notebook_path
@@ -76,6 +77,8 @@ def execute_analysis(settings, notebook_path, reports_dir, *, expected_run_id=No
             with sqlite3.connect(snapshot) as destination:
                 source.backup(destination)
         frame, run = read_dataset(snapshot)
+        has_demographics = has_race_data(snapshot)
+        required_files = (*REPORT_FILES, *RACE_REPORT_FILES) if has_demographics else REPORT_FILES
         if run["status"] != "SUCCESS" or (expected_run_id and run["run_id"] != expected_run_id):
             raise QualityError("Analysis requires the expected successfully published data run.")
 
@@ -102,7 +105,7 @@ def execute_analysis(settings, notebook_path, reports_dir, *, expected_run_id=No
         executed = nbformat.writes(notebook).encode("utf-8")
         html, _ = HTMLExporter().from_notebook_node(notebook)
         (output / "eda.html").write_text(html, encoding="utf-8")
-        for name in REPORT_FILES:
+        for name in required_files:
             path = output / name
             if not path.is_file() or not path.stat().st_size:
                 raise QualityError(f"The analysis did not generate {name}.")
@@ -111,12 +114,20 @@ def execute_analysis(settings, notebook_path, reports_dir, *, expected_run_id=No
         summary = json.loads((output / "analysis_summary.json").read_text())
         if (summary["run_id"], summary["as_of"], summary["rows"]) != (run["run_id"], run["as_of"], len(frame)):
             raise QualityError("The analysis outputs do not match the database snapshot.")
+        demographic_rows = 0
+        if has_demographics:
+            race, _ = read_race_dataset(snapshot)
+            demographic_rows = len(race)
+            race_summary = json.loads((output / "race/analysis_summary.json").read_text())
+            if (race_summary["run_id"], race_summary["as_of"], race_summary["rows"]) != (run["run_id"], run["as_of"], demographic_rows):
+                raise QualityError("The demographic reports do not match the database snapshot.")
 
         manifest = {
             "run_id": run["run_id"], "as_of": run["as_of"], "rows": len(frame),
             "generated_at": now(), "executed_code_cells": len(code_cells),
+            "demographic_rows": demographic_rows,
             "notebook": {"name": published_notebook_path.name, "sha256": hashlib.sha256(executed).hexdigest()},
-            "files": {name: hashlib.sha256((output / name).read_bytes()).hexdigest() for name in REPORT_FILES},
+            "files": {name: hashlib.sha256((output / name).read_bytes()).hexdigest() for name in required_files},
         }
         # Hold a short write reservation so the publication pointer cannot change
         # between the final check and replacement of this run's report files.
@@ -125,8 +136,12 @@ def execute_analysis(settings, notebook_path, reports_dir, *, expected_run_id=No
             current = conn.execute("SELECT run_id FROM dataset_state WHERE singleton=1").fetchone()
             if current is None or current["run_id"] != run["run_id"]:
                 raise QualityError("A newer dataset was published during analysis; rerun against it.")
-            for name in REPORT_FILES:
+            for name in required_files:
                 atomic_write(reports_dir / name, (output / name).read_bytes())
+            if not has_demographics:
+                # A replay of a legacy archive must not leave a newer demographic report beside it.
+                for name in RACE_REPORT_FILES:
+                    (reports_dir / name).unlink(missing_ok=True)
             atomic_write(published_notebook_path, executed)
             atomic_write(reports_dir / "report_manifest.json", json.dumps(manifest, indent=2).encode() + b"\n")
         return manifest

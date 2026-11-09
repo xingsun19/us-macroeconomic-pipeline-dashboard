@@ -1,0 +1,31 @@
+transformation,outcome,lag_months,pearson_r,paired_months
+Levels,white,0,-0.5821949151040957,285
+Levels,black,0,-0.6131811904372108,285
+Levels,asian,0,-0.5430119162824815,285
+Levels,hispanic,0,-0.5913747342631429,285
+Levels,black_white_gap_pp,0,-0.5621726765646717,285
+Levels,white,6,-0.449890872902024,279
+Levels,black,6,-0.5119273202799419,279
+Levels,asian,6,-0.40537208936637803,279
+Levels,hispanic,6,-0.4537451318396457,279
+Levels,black_white_gap_pp,6,-0.5106510818228425,279
+Levels,white,12,-0.2752340229545513,273
+Levels,black,12,-0.3570106689766593,273
+Levels,asian,12,-0.22886183946841565,273
+Levels,hispanic,12,-0.2732038687492971,273
+Levels,black_white_gap_pp,12,-0.40042387405217167,273
+Monthly changes,white,0,-0.25154425336419045,283
+Monthly changes,black,0,-0.18419781282650433,283
+Monthly changes,asian,0,-0.2193275950948476,283
+Monthly changes,hispanic,0,-0.2438925905066909,283
+Monthly changes,black_white_gap_pp,0,0.046172529703022734,283
+Monthly changes,white,6,-0.05898269815195994,277
+Monthly changes,black,6,-0.0709268134480933,277
+Monthly changes,asian,6,-0.03113370916276932,277
+Monthly changes,hispanic,6,-0.06715729329016502,277
+Monthly changes,black_white_gap_pp,6,-0.03171350140212742,277
+Monthly changes,white,12,-0.001841556773773421,271
+Monthly changes,black,12,-0.06123290151439356,271
+Monthly changes,asian,12,-0.0036526530572674335,271
+Monthly changes,hispanic,12,-0.0001250068755042267,271
+Monthly changes,black_white_gap_pp,12,-0.09302919107333125,271

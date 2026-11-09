@@ -1,8 +1,46 @@
 # Verification record
 
-Latest report reconciliation: **November 9, 2026 (America/Chicago)**, using FRED vintage **2026-11-09**. The deployment and full-suite checks below were performed on November 8; container/audit timestamps use UTC. The separately preserved offline archive retains vintage **2026-11-08**.
+## Race and ethnicity extension — November 9, 2026
 
-## Latest report reconciliation
+The current notebook and report artifacts use FRED vintage **2026-11-09** and successful data run `fa9ca85fd0b5501e5a1da453d0f6ef62`. Analysis completed at **2026-11-09 17:14:20 UTC**. This section supersedes the earlier three-series counts retained below as development history.
+
+| Check | Observed outcome |
+|---|---|
+| Live FRED extraction | All seven series fetched; the four new series are monthly, seasonally adjusted percentages from January 2003 |
+| SQLite | 322 original macroeconomic months and 286 demographic months; both modules published under one run ID; integrity check passed |
+| Linux Docker application suite | **71 passed**, 2 Airflow-specific tests deselected; Python 3.11.18 |
+| Native application suite | **71 passed**; Python 3.13.5 (before adding the separate Airflow import-isolation regression) |
+| Application coverage | **95%** statement coverage: 825 statements, 43 not covered |
+| Airflow container tests | **2 passed**: dependency graph/manual schedule and report-task dependency isolation |
+| Real Airflow execution | All seven tasks succeeded, including live requests, validation, transactional publication, and analysis; run `manual__2026-11-09T17:14:04.092534+00:00` |
+| Notebook/report generation | **15 code cells** executed without errors; **23 artifacts** plus the executed notebook; every hash matches `report_manifest.json` |
+| Offline Docker replay | No API key; replay configured with `network_mode: none`; 15 cells and 23 artifacts rebuilt from the seven-series archive |
+| Live/offline equivalence | Both reconstructed tables match the live publication within `1e-12` numerical tolerance; live outputs remain separate |
+| Original dashboard regression | Original three metrics, full-history display, indicator controls, comparisons, and existing tests preserved |
+| New dashboard tests | Three AppTest cases cover latest values, four/two/zero selected groups, five-year/custom ranges, calendar gaps, policy changes, legacy databases, and offline labeling |
+| Browser verification | Four latest cards, four trend lines, 60-month five-year selection, Black–White gap metrics/chart, policy tab, and CSV download rendered successfully |
+| Browser download | Downloaded 60 rows for November 2021–October 2026; every exported value/flag matches the selected SQLite data |
+| Figures | All four new PNGs visually inspected; eight figures in the combined report |
+| Operating schedule | `schedule=None` remains in effect; each requested Run updates all seven series and generates analysis automatically |
+
+The new rates are **3.7% White, 6.6% Black, 2.8% Asian, and 4.7% Hispanic/Latino**, all observed in October 2026. The same-month Black–White gap is **2.90 percentage points**. Each demographic series has 286 calendar rows and 285 observed values; October 2025 remains explicitly source-missing. No missing values were interpolated.
+
+Additional regression cases exercise conflicting duplicates, omitted calendar months, nonfinite/out-of-range values, incompatible source units/seasonal adjustment, stale/missing observations, gap arithmetic, historical revisions, migration of existing databases, and a deliberately failed second-table write. Both published modules remain unchanged when validation or the shared transaction fails. Legacy three-series archives still execute the combined notebook with an explicit demographic-data-unavailable message.
+
+The first extended Airflow execution exposed an early Matplotlib import in the main Airflow environment. Moving analysis imports into the isolated execution path resolved it. A regression now checks that importing the report task does not load Matplotlib or nbconvert; the subsequent real seven-task execution passed. The failed attempt remains in the local audit history and did not overwrite the previously successful reports.
+
+The current default archive contains all seven public FRED responses and a verified SHA-256 manifest. It was captured earlier on the same vintage date; replay produces the same observation values as the final live run. The original November 8 archive and its manifest remain available. Working databases, API credentials, local HTML, and offline outputs remain excluded from Git.
+
+The Docker dashboard was healthy on port 8501 after verification. The temporary Airflow execution finished and PostgreSQL was stopped; no recurring scheduler was started. The dashboard remains available in the existing viewing session.
+
+Minor dependency warnings did not prevent execution. Native Windows was not tested; Windows instructions continue to use WSL 2 and Docker. Offline reproduction requires the prepared runtime image; initial installation and live refresh require internet access.
+
+## Historical verification — original three-series version
+
+The following records describe the earlier implementation and its original 11-cell/12-artifact report. They are retained for traceability; current extension counts and provenance are listed above.
+
+### Previous report reconciliation
+
 
 The committed notebook and report artifacts correspond to successful data run `334862dbc55e2f824ea7f53d9914f484`, with analysis generated at **2026-11-09 15:13:24 UTC**. The existing outputs were checked against the local SQLite publication before submission; no new API ingestion was needed for this reconciliation.
 

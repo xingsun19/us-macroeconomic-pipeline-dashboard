@@ -9,6 +9,12 @@ import os
 from dotenv import load_dotenv
 
 SERIES = ("UNRATE", "CPIAUCSL", "FEDFUNDS")
+RACE_SERIES = {
+    "LNS14000003": "white", "LNS14000006": "black",
+    "LNS14032183": "asian", "LNS14000009": "hispanic",
+}
+ALL_SERIES = (*SERIES, *RACE_SERIES)
+RACE_START_DATE = "2003-01-01"
 START_DATE = "2000-01-01"
 WARMUP_DATE = "1999-01-01"
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -20,6 +26,8 @@ class Settings:
     db_path: Path = Path("data/macroeconomics.db")
     data_dir: Path = Path("data")
     as_of: date = field(default_factory=lambda: datetime.now(ZoneInfo("America/Chicago")).date())
+    # False is reserved for replaying legacy three-series archives.
+    include_demographics: bool = True
 
     @classmethod
     def from_env(cls):

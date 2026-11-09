@@ -22,7 +22,9 @@ from macro_pipeline import pipeline
     default_args={"owner": "macro-research", "retries": 2, "retry_delay": timedelta(minutes=2), "execution_timeout": timedelta(minutes=10)},
     dagrun_timeout=timedelta(minutes=45),
     tags=["fred", "macroeconomics", "sqlite", "final-project"],
-    doc_md="""Refresh all three monthly FRED series only when explicitly requested, including historical revisions.
+    doc_md="""Refresh all seven monthly FRED series only when explicitly requested, including historical revisions.
+    Macro history begins in 2000; race and ethnicity unemployment begins in 2003.
+    Both modules are validated and published in one SQLite transaction.
     There is no timetable: the Run launcher executes this DAG once and exits.
     The small full-history refresh is intentional. XCom carries only a run identifier.
     A failing extraction or validation leaves the previously published dataset intact.

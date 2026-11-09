@@ -4,7 +4,7 @@
 
 **Northwestern University · Topics in Data Engineering · Fall 2026**
 
-Our project examines U.S. unemployment, consumer prices, and monetary policy from 2000 onward. We collect FRED data, validate and store it in SQLite, orchestrate the pipeline with Apache Airflow, and present the results in Jupyter and an independent Streamlit dashboard.
+Our project examines U.S. unemployment, consumer prices, and monetary policy from 2000 onward, with unemployment by race and ethnicity from 2003 onward. We collect seven FRED series, validate and store them in SQLite, orchestrate the pipeline with Apache Airflow, and present the results in Jupyter and an independent Streamlit dashboard.
 
 ![U.S. macroeconomic history](reports/figures/historical_trends.png)
 
@@ -54,9 +54,24 @@ On macOS, double-clicking **Run.command** is equivalent. This executes all seven
 
 The dashboard reads SQLite directly. Refreshing its display does not fetch new API data. Offline mode clearly labels the archived vintage and uses a separate database; it does not replace live data.
 
+## Unemployment by Race & Ethnicity
+
+Choose **Unemployment by Race and Ethnicity** in the dashboard's page navigation. This separate page adds four latest-value cards, selectable trend lines, simple preset/custom date ranges, a Black–White gap chart, federal-funds comparisons, and CSV downloads. The original macroeconomic page retains its full-history display.
+
+| Group | FRED series | Coverage / units |
+|---|---|---|
+| White | `LNS14000003` | January 2003 onward; monthly, seasonally adjusted percent |
+| Black or African American | `LNS14000006` | Same |
+| Asian | `LNS14032183` | Same |
+| Hispanic or Latino | `LNS14000009` | Same |
+
+**Hispanic/Latino is an ethnicity and may overlap with any race.** The groups are not mutually exclusive or exhaustive, and their unemployment rates must not be added. The Black–White gap is a same-month subtraction in percentage points. The notebook analyzes long-term trends, explicitly defined financial-crisis/pandemic windows, and policy-rate associations in levels and changes. These are descriptive findings, not causal estimates. See [methods and operation](docs/race_ethnicity.md) and [computed findings](reports/race/findings.md).
+
+Run updates all seven series and publishes both modules in one database transaction, then generates the combined HTML report and the additional outputs under `reports/race/`. Existing databases are upgraded automatically. For the new offline module, rebuild once with `bash scripts/run.sh --prepare-offline`, then use `Run Offline.command`; its bundled archive includes all seven series.
+
 ## Key findings
 
-The latest committed analysis uses the **2026-11-09 vintage** and contains **322 monthly observations, January 2000–October 2026**. Offline replay retains the archived **2026-11-08 vintage**; the published observation values are unchanged between these two runs.
+The current analysis and default offline archive use the **2026-11-09 vintage**: **322 macroeconomic months (January 2000–October 2026)** and **286 demographic months (January 2003–October 2026)**. The original three-series November 8 archive remains available for historical reproduction.
 
 - **The 2020 labor-market shock:** unemployment reached **14.8% in April 2020**, the largest value in this sample.
 - **Inflation and policy moved on different timelines:** seasonally adjusted CPI YoY inflation peaked at **8.98% in June 2022**. The monthly effective federal funds rate was **1.21%** then, **4.10% in December 2022**, and **5.33% in August 2023**. This sequence describes timing; it does not identify a causal policy effect.
@@ -77,6 +92,7 @@ The repository includes a [checksummed raw-data snapshot](snapshots/manifest.jso
 | `src/macro_pipeline/` | API client, pipeline, quality checks, SQLite, analysis, offline replay |
 | `dags/` | Executable seven-task Airflow DAG |
 | `dashboard/` | Streamlit + Plotly dashboard |
+| `dashboard/pages/` | Independent race and ethnicity unemployment page |
 | `notebooks/`, `reports/` | Executed EDA, findings, statistics, and figures |
 | `snapshots/` | Versioned real FRED responses and provenance/checksum manifest |
 | `tests/` | Pipeline, reporting, dashboard, launcher, and DAG checks |

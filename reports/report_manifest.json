@@ -1,16 +1,17 @@
 {
-  "run_id": "334862dbc55e2f824ea7f53d9914f484",
+  "run_id": "fa9ca85fd0b5501e5a1da453d0f6ef62",
   "as_of": "2026-11-09",
   "rows": 322,
-  "generated_at": "2026-11-09T15:13:24.480188+00:00",
-  "executed_code_cells": 11,
+  "generated_at": "2026-11-09T17:14:20.273310+00:00",
+  "executed_code_cells": 15,
+  "demographic_rows": 286,
   "notebook": {
     "name": "01_macroeconomic_eda.ipynb",
-    "sha256": "c473baf8031b58a9284cd97cc9b6af8e3bf20d0d5066fc9f25845c162c7f983f"
+    "sha256": "03743f826166e0a4721502cb6c31e3cf0b12f6097bd3f50bfe14ba3baae22047"
   },
   "files": {
-    "eda.html": "d160d2f8f088b7a22bbd58a8e4dc7185eb14a5ee975a96deec0fae286ec130a1",
-    "analysis_summary.json": "5e5894c77ff5c1b588bc9f19a34344e65a5c06c2c0368fa67afeb8a0c7e8a084",
+    "eda.html": "93a2c5ba345716599d940684e4f2d868cf68d03bc0c5912f0a6a82f4d9dc3551",
+    "analysis_summary.json": "240eb589281b9d7a31c663a31242f34184081efceaefb0ae8b2131fd44ac090b",
     "findings.md": "8946976466347490e05250d0f012ecb1b7dbbbbf6804800c97b9b068072d6043",
     "monthly_indicators.csv": "c001b35c607ae16de7b1cbb2471444aaa79c6a28c312123cc53ea99ae37298d2",
     "descriptive_statistics.csv": "2b5bb312dee4e28d979fde984e8cf118aee63a9043b3781a952cc4ed40e7fc95",
@@ -20,6 +21,17 @@
     "figures/historical_trends.png": "e795b2bdf08f522225e3509e5b47e754fe6885475e26ea1012e281479c4877e8",
     "figures/inflation_and_policy.png": "b78316d17bda5bf6158996ce60386e8b667f2c983c1fd00169082a5ef008202b",
     "figures/correlations.png": "0b6cbef874e1ce3e2e6496a8bf45c25ac6d91e819f240aa706e0487a7d438307",
-    "figures/relationship_stability.png": "74b49d2f929cde2f916e7bca6d56284d8cd07667567c358d1b58f3e874ab954d"
+    "figures/relationship_stability.png": "74b49d2f929cde2f916e7bca6d56284d8cd07667567c358d1b58f3e874ab954d",
+    "race/monthly_unemployment.csv": "e664c9da4bf7fa1f416ec7250f672776f95be880f4a2e94b9a943b195cf82c6a",
+    "race/descriptive_statistics.csv": "fc29fb596778158fd3229852a6a3938b66b83a5885e6b0adac37becbe7f197e1",
+    "race/annual_summary.csv": "ddd849b37c9fce9826016c9be2ad921cad24bf411edcda4bd222b61baed494b7",
+    "race/crisis_comparison.csv": "156042a664ecbd4e566c649d8640d5b551088551df1ad8bacef8459cf5795225",
+    "race/policy_correlations.csv": "e13e69aa57d1305107ebcb70ebffd8e48c39235faf74743dba16efb0883fd99b",
+    "race/analysis_summary.json": "4398e8fd7c0137096889fc450b91f0856e1e14638bf7d123bf371fe1b5f71333",
+    "race/findings.md": "a93eb0d31f8d83ee6d1f963247fbd23160cd6db8ea5eed18689a5edb8ae7760d",
+    "race/figures/trends.png": "541a8501e6998339c68c3732848b17a896af87503e3b03d48f794cebef78f501",
+    "race/figures/black_white_gap.png": "951961a96cf59eef37b49b89020794c5593922513435eeea8fdd2bae4ad3f334",
+    "race/figures/crisis_comparison.png": "ec22e28dbb99ed13a7a73631ba2f0cc82084c32fe4a213192469540236490be7",
+    "race/figures/policy_relationships.png": "245450a2303eb9ac113b31938947a817d42e19d94699aa24ef96c565cd8fcb25"
   }
 }
