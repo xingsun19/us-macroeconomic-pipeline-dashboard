@@ -6,17 +6,33 @@ A Northwestern University **Topics in Data Engineering, Fall 2026** project: ing
 
 ## Quick start with Docker
 
-Prerequisites: Git, Docker Engine/Desktop with **Compose v2 or later**, internet access, and your own [FRED API key](https://fred.stlouisfed.org/docs/api/api_key.html). Recommended Docker VM resources: 4 CPUs, 8 GB RAM, and at least 10 GB free disk for images and builds. The upstream images support Apple Silicon and Linux.
+Prerequisites: Git, Docker Engine/Desktop with **Compose v2 or later**, internet access, and your own [FRED API key](https://fred.stlouisfed.org/docs/api/api_key.html). Recommended Docker VM resources: 4 CPUs, 8 GB RAM, and at least 10 GB free disk for images and builds. The upstream images support Apple Silicon and Linux. Python and Airflow are installed inside the Docker images; no separate host installation is needed.
+
+**1. Download a fresh copy and create its configuration file (first use only).** Run these three lines in an empty terminal prompt:
 
 ```bash
 git clone https://github.com/xingsun19/us-macroeconomic-pipeline-dashboard.git
 cd us-macroeconomic-pipeline-dashboard
 cp .env.example .env
-# Edit .env: FRED_API_KEY=your_32_character_key
+```
+
+**2. Enter your own API key and save the file before starting the project.** On macOS, open the configuration in TextEdit:
+
+```bash
+open -e .env
+```
+
+In the file, enter your actual 32-character FRED key after `FRED_API_KEY=`. Save and close the editor. On Linux, edit `.env` with your preferred text editor. This is a file-editing step, not a terminal command. Do not repeat `cp .env.example .env` in an already configured checkout: it overwrites the saved configuration.
+
+**3. Run the complete project once.** Back in the same terminal and project directory:
+
+```bash
 bash scripts/run.sh
 ```
 
-On macOS, double-click **Run.command** in the project folder. It opens a Terminal window, starts Docker if needed (Colima or Docker Desktop), builds/reuses the images, executes all seven Airflow tasks once, and opens the HTML report and dashboard. Initial downloads take several minutes. The script never prints the API key. `scripts/start.sh` is an alias for this same on-demand launcher.
+Alternatively, on macOS, double-click **Run.command** in the project folder instead of entering the step 3 command. It opens a Terminal window, starts Docker if needed (Colima or Docker Desktop), builds/reuses the images, executes all seven Airflow tasks once, and opens the HTML report and dashboard. Initial downloads take several minutes. The script never prints the API key. `scripts/start.sh` is an alias for this same on-demand launcher.
+
+For later runs, skip steps 1 and 2. Double-click **Run.command**, or open a terminal in the existing project folder and use `bash scripts/run.sh`. Both entry points run the same workflow.
 
 - **Dashboard:** [http://localhost:8501](http://localhost:8501)
 - **HTML report:** `reports/eda.html`; it remains viewable with Docker stopped.
