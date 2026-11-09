@@ -1,4 +1,4 @@
-"""Daily end-to-end FRED update; task boundaries match auditable pipeline stages."""
+"""On-demand FRED update; task boundaries match auditable pipeline stages."""
 
 from datetime import timedelta
 import hashlib
@@ -15,14 +15,15 @@ from macro_pipeline import pipeline
 @dag(
     dag_id="us_macro_pipeline",
     description="Update FRED/SQLite, execute the EDA notebook, and publish HTML reports and charts",
-    schedule="0 18 * * *",
+    schedule=None,
     start_date=pendulum.datetime(2026, 1, 1, tz="UTC"),
     catchup=False,
     max_active_runs=1,
     default_args={"owner": "macro-research", "retries": 2, "retry_delay": timedelta(minutes=2), "execution_timeout": timedelta(minutes=10)},
     dagrun_timeout=timedelta(minutes=45),
     tags=["fred", "macroeconomics", "sqlite", "final-project"],
-    doc_md="""Refresh all three monthly FRED series daily at 18:00 UTC, including historical revisions.
+    doc_md="""Refresh all three monthly FRED series only when explicitly requested, including historical revisions.
+    There is no timetable: the Run launcher executes this DAG once and exits.
     The small full-history refresh is intentional. XCom carries only a run identifier.
     A failing extraction or validation leaves the previously published dataset intact.
     Run durations and quality results are also recorded in the application SQLite database.

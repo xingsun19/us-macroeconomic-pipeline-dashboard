@@ -14,7 +14,7 @@ nb.cells = [
 
 **Research question:** How have unemployment, consumer prices, and the federal funds rate evolved since 2000, and how stable are their descriptive relationships?
 
-This notebook reads the **validated SQLite database**, performs reproducible exploratory analysis, and exports figures and findings. It does not call an API or contain credentials. Airflow executes this notebook after each successful daily data update. For manual analysis, run `macro-pipeline update` first, then execute this notebook from top to bottom. All values and conclusions below are calculated from the database snapshot.
+This notebook reads the **validated SQLite database**, performs reproducible exploratory analysis, and exports figures and findings. It does not call an API or contain credentials. The Run launcher executes the Airflow DAG once, including this notebook after successful data publication. There is no recurring schedule. For separate manual analysis, run `macro-pipeline update` first, then execute this notebook from top to bottom. All values and conclusions below are calculated from the database snapshot.
 
 The deliverable covers API ingestion, database storage, an executable end-to-end Airflow DAG, a reproducible GitHub repository, and EDA. The interactive Streamlit dashboard is a separate application. The requested PowerPoint is outside the current scope.
 """),
@@ -26,7 +26,7 @@ The deliverable covers API ingestion, database storage, an executable end-to-end
 | [CPIAUCSL](https://fred.stlouisfed.org/series/CPIAUCSL) | All-items urban consumer price index (BLS) | 1982–84 = 100 | Seasonally adjusted |
 | [FEDFUNDS](https://fred.stlouisfed.org/series/FEDFUNDS) | Effective federal funds rate (Federal Reserve) | Percent, monthly average of daily figures | Not seasonally adjusted |
 
-The published analysis begins in January 2000. Raw ingestion also retrieves 1999 to provide a twelve-month warm-up for inflation. API requests specify the same FRED real-time/vintage date for all three series. A full-history daily refresh captures revisions. Raw JSON, checksums, metadata, run statuses, and stage durations are retained locally.
+The published analysis begins in January 2000. Raw ingestion also retrieves 1999 to provide a twelve-month warm-up for inflation. API requests specify the same FRED real-time/vintage date for all three series. A full-history refresh on each requested run captures revisions. Raw JSON, checksums, metadata, run statuses, and stage durations are retained locally.
 
 **Missing data policy:** preserve explicit FRED `.` as null; distinguish it from unreleased trailing months. Reject omitted calendar months, implausible values, stale series, and source-missing shares above 5%. Never forward-fill or interpolate observations. Percentage changes explicitly disable implicit filling. Each statistic excludes only the nulls relevant to that calculation.
 """),
@@ -115,7 +115,7 @@ display(lag_table.groupby('outcome').agg(min_pairs=('n', 'min'), max_pairs=('n',
 
 **Reproducibility.** `requirements.lock` pins Python dependencies and hashes; Docker fixes base-image digests. Every refresh stores the requested FRED vintage and raw checksum. Use a new database path with `macro-pipeline update --as-of YYYY-MM-DD` for a separate historical snapshot; the publication guard prevents older snapshots overwriting newer data. The CSV reports and executed notebook preserve this run's visible results. External APIs, registry availability, and future provider changes cannot be guaranteed indefinitely, so archive release artifacts for long-term reproducibility.
 
-**Project components:** `src/macro_pipeline/`, `dags/us_macro_pipeline.py`, `dashboard/app.py`, `tests/`, `compose.yaml`, and the English `README.md`. The DAG runs extraction → raw storage → cleaning/transformation → validation → publication → read-back verification → notebook execution and report generation. The scheduled task uses a frozen database snapshot and stages outputs before publishing the HTML, figures, tables, findings, and executed notebook. No PowerPoint is generated in this scope.
+**Project components:** `src/macro_pipeline/`, `dags/us_macro_pipeline.py`, `dashboard/app.py`, `tests/`, `compose.yaml`, `Run.command`, and the English `README.md`. The DAG runs extraction → raw storage → cleaning/transformation → validation → publication → read-back verification → notebook execution and report generation. The analysis task uses a frozen database snapshot and stages outputs before publishing the HTML, figures, tables, findings, and executed notebook. It runs only when requested; no PowerPoint is generated in this scope.
 """),
     code("""expected = ['descriptive_statistics.csv', 'correlation_levels.csv', 'correlation_changes.csv', 'lag_correlations.csv', 'analysis_summary.json', 'findings.md', 'monthly_indicators.csv']
 assert all((report_dir / item).is_file() for item in expected)

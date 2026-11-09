@@ -1,6 +1,6 @@
 # U.S. Macroeconomic Data Pipeline & Dashboard
 
-A Northwestern University **Topics in Data Engineering, Fall 2026** project: ingest FRED observations, retain auditable raw data, publish validated SQLite tables, orchestrate daily updates with Apache Airflow, analyze the economy in Jupyter, and explore it in an independent Streamlit + Plotly dashboard.
+A Northwestern University **Topics in Data Engineering, Fall 2026** project: ingest FRED observations, retain auditable raw data, publish validated SQLite tables, orchestrate on-demand updates with Apache Airflow, analyze the economy in Jupyter, and explore it in an independent Streamlit + Plotly dashboard.
 
 ![Historical macroeconomic trends](reports/figures/historical_trends.png)
 
@@ -13,15 +13,18 @@ git clone https://github.com/xingsun19/us-macroeconomic-pipeline-dashboard.git
 cd us-macroeconomic-pipeline-dashboard
 cp .env.example .env
 # Edit .env: FRED_API_KEY=your_32_character_key
-bash scripts/start.sh
+bash scripts/run.sh
 ```
 
-The script configures host user IDs for bind mounts, builds the images, loads real data, and starts the stack. Initial downloads take several minutes. It never prints the API key.
+On macOS, double-click **Run.command** in the project folder. It opens a Terminal window, starts Docker if needed (Colima or Docker Desktop), builds/reuses the images, executes all seven Airflow tasks once, and opens the HTML report and dashboard. Initial downloads take several minutes. The script never prints the API key. `scripts/start.sh` is an alias for this same on-demand launcher.
 
 - **Dashboard:** [http://localhost:8501](http://localhost:8501)
-- **Airflow:** [http://localhost:8080](http://localhost:8080), username `admin`. Read its generated local password using `docker compose exec airflow cat /opt/airflow/state/passwords.json`.
-- Check readiness using `docker compose ps`. The initial `pipeline` service exits with code 0; that is expected. The dashboard starts only after a successful load.
-- The `us_macro_pipeline` DAG is enabled by default and runs daily at **18:00 UTC**. Each successful update automatically executes the EDA notebook and regenerates the HTML report, PNG charts, statistics, and findings. Keep the machine and Docker running for scheduled updates.
+- **HTML report:** `reports/eda.html`; it remains viewable with Docker stopped.
+- **Finish viewing:** press Return in the Run window. This stops the dashboard and all project services. Closing that window also requests cleanup. If this launcher started Colima, it stops that VM too, unless other containers are now running. An already-running Docker engine is left available for other projects.
+- **No automatic updates:** `schedule=None`, `catchup=False`, and disabled container restart policies prevent timed runs and automatic service restarts. PostgreSQL and Airflow are used only while the requested run executes; no Airflow server/scheduler stays running afterward.
+- Logs are retained locally under `logs/`. A second Run window is rejected while the first is active. Failures stop services and preserve the last successfully published reports.
+
+For a noninteractive run that generates artifacts and stops immediately: `bash scripts/run.sh --batch`. To view the previous HTML report without updating data or starting Docker, simply open `reports/eda.html`.
 
 This is a **local demonstration deployment**. Ports bind to loopback; Airflow uses the development Simple Auth Manager, local PostgreSQL credentials, and a local JWT signing setting. Remote deployment needs separate authentication, TLS, private networking, and managed secrets. PostgreSQL stores **Airflow metadata only**; all FRED data are in SQLite. No paid service is required.
 
@@ -52,7 +55,7 @@ flowchart LR
     Q --> N[Execute Jupyter EDA]
     N --> H[Verified HTML, charts, and findings]
     M --> D[Streamlit + Plotly]
-    A[Daily Airflow DAG] -. orchestrates .-> E
+    A[On-demand Airflow DAG] -. orchestrates .-> E
     A -. orchestrates .-> Q
 ```
 
@@ -60,7 +63,7 @@ Actual DAG: `extract_api → store_raw → clean_transform → validate_quality 
 
 The final task runs only after all six data stages succeed. It executes every notebook cell in an isolated, hash-locked Python environment inside the Airflow container, so notebook dependencies cannot alter Airflow's environment. A SQLite backup fixes the analysis to the exact published run. Outputs are generated in a temporary directory and validated before replacing the existing reports; a cell error or missing figure fails the Airflow task and preserves the previous report. Each file is replaced atomically and the provenance/checksum manifest is written last. Two retries and the task timeout apply to analysis too. A report error does not invalidate the successfully published data used by the dashboard.
 
-## Where to see the automatically refreshed analysis
+## Where to see the analysis after Run
 
 | Output | Local path |
 |---|---|
@@ -71,11 +74,11 @@ The final task runs only after all six data stages succeed. It executes every no
 | Statistical tables, findings, and exported data | `reports/*.csv`, `reports/findings.md` |
 | Report run, vintage, generation time, and artifact hashes | `reports/report_manifest.json` |
 
-The reports and notebook directories are bind-mounted into Airflow, so results persist on the host and remain available after container restarts. No manual notebook command is needed for the daily schedule. To request the **complete** update immediately, trigger `us_macro_pipeline` in Airflow or use `docker compose exec airflow airflow dags trigger us_macro_pipeline`. A run is complete only when **generate_analysis** succeeds. The data-only `macro-pipeline update` CLI remains available for independent ingestion.
+The reports and notebook directories are bind-mounted into Airflow, so results persist on the host after containers stop. Double-click **Run.command** to request the complete update; no separate notebook command is needed. A run is complete only when **generate_analysis** succeeds. The data-only `macro-pipeline update` CLI remains available for independent ingestion.
 
 Automatic generation updates local files; it does not automatically commit reports to GitHub. The public repository shows the latest submitted snapshot.
 
-For an existing installation, rebuild and restart Airflow after pulling this update: `docker compose up -d --build --no-deps airflow`. Keep its DAG enabled. The first complete run can be triggered with the command above.
+For an existing installation, stop the old persistent services after pulling this update: `docker compose stop airflow dashboard postgres`. Then use Run. The launcher also stops old project services before starting its own run. Images are rebuilt as needed; data and Airflow audit history are preserved.
 
 ```text
 src/macro_pipeline/       API client, SQLite, transformations, pipeline, CLI, analysis
@@ -86,6 +89,7 @@ tests/                   Offline, integration, UI, and DAG tests
 reports/                 Findings, statistics, figures, verification record
 docs/                    Data dictionary and assignment mapping
 scripts/                 Startup, notebook/DAG execution, secret scan
+Run.command              macOS double-click launcher with cleanup on exit
 docker/                  Airflow image and official vendored constraints
 compose.yaml             Complete local stack and optional test/notebook services
 requirements.lock        Universal Python dependency lock with hashes
@@ -99,7 +103,7 @@ data/                    Local SQLite and raw snapshots; ignored by Git
 
 The analysis starts in January 2000. Ingestion includes 1999 as a twelve-month warm-up for inflation. Requests specify a common FRED vintage, support pagination, and retry transient failures with bounded timeouts. Error messages exclude credential-bearing request URLs and response bodies.
 
-Each daily update re-fetches the small full history (about 1,000 source observations), capturing old revisions and new months. Raw snapshots are retained per run. A unique date key and atomic replacement prevent duplicate published months.
+Each requested update re-fetches the small full history (about 1,000 source observations), capturing old revisions and new months. Raw snapshots are retained per run. A unique date key and atomic replacement prevent duplicate published months.
 
 | SQLite table | Purpose |
 |---|---|
@@ -115,12 +119,12 @@ Checks cover all three series, month-start dates, continuous calendars, duplicat
 
 **Official missing values are preserved.** FRED `.` becomes NULL with `source_missing`; absent trailing releases are `not_released`. Nothing is interpolated or forward-filled. October 2025 unemployment and CPI are missing due to the government shutdown, as documented by [BLS CPS](https://www.bls.gov/cps/methods/2025-federal-government-shutdown-impact-cps.htm) and [BLS CPI](https://www.bls.gov/cpi/additional-resources/2025-federal-government-shutdown-impact-cpi-faq.htm). Calculations using a missing denominator remain null.
 
-A failed extraction, transformation, or validation leaves the last successful dataset intact. Publication is one transaction; WAL, busy timeouts, and snapshot reads support dashboard access during updates. Older runs cannot replace newer snapshots. Airflow allows one active run; avoid launching a manual CLI writer while a scheduled run publishes. Raw/staging history is retained for audit and grows over time. See [the data dictionary](docs/data_dictionary.md).
+A failed extraction, transformation, or validation leaves the last successful dataset intact. Publication is one transaction; WAL, busy timeouts, and snapshot reads support dashboard access during updates. Older runs cannot replace newer snapshots. The launcher prevents concurrent Run windows; avoid launching another CLI or Airflow writer during a run. Raw/staging history is retained for audit and grows over time. See [the data dictionary](docs/data_dictionary.md).
 
 ## EDA and testing
 
 ```bash
-# Optional manual report rerun; the daily DAG already performs this step
+# Optional report-only rerun; the Run launcher already performs this step
 docker compose run --rm --no-deps notebook python scripts/execute_notebook.py
 
 # Interactive JupyterLab; use the generated token from the local logs
@@ -132,19 +136,22 @@ docker compose logs notebook
 docker compose run --rm --no-deps tests
 
 # Airflow import and dependency graph
-docker compose exec airflow pytest /opt/project/tests/test_dag.py -q
+docker compose run --rm --no-deps airflow python -m pytest /opt/project/tests/test_dag.py -q
 
 # Real seven-task smoke test, including report generation
-# Pause scheduling and wait for active runs to finish before this isolated smoke test
-docker compose exec airflow airflow dags pause us_macro_pipeline
-docker compose exec airflow python /opt/project/scripts/test_dag_run.py
-docker compose exec airflow airflow dags unpause us_macro_pipeline
+# Wait for any active Run window to finish before this isolated smoke test
+docker compose up -d --wait postgres
+docker compose run --rm --no-deps airflow db migrate
+docker compose run --rm --no-deps airflow python /opt/project/scripts/test_dag_run.py
+docker compose stop postgres
 
-# Trigger a real scheduler/executor run immediately
-docker compose exec airflow airflow dags trigger us_macro_pipeline
+# Complete on-demand run with production retries; clean up afterward
+bash scripts/run.sh --batch
 ```
 
 The smoke test calls the live FRED API and skips no tasks. It disables retries only in its own process to fail promptly. Production tasks retain two retries, a two-minute delay, and ten-minute task timeouts; the DAG timeout is 45 minutes. The included CI template runs deterministic synthetic fixtures and separately checks the real DAG; fixtures are never used by production ingestion.
+
+The Run launcher initializes/migrates Airflow's metadata database, then uses Airflow's local `dag.test()` execution mode with the real operators, FRED API, SQLite publication, production retries, and persistent PostgreSQL audit records. The temporary container is removed after execution; it does not launch a recurring scheduler. For optional UI inspection, explicitly start `docker compose up -d --build airflow` and open [http://localhost:8080](http://localhost:8080) as `admin`. Read its local password with `docker compose exec airflow cat /opt/airflow/state/passwords.json`. Stop it afterward using `docker compose stop airflow postgres`. Even in UI mode, `schedule=None` disables timed runs.
 
 **Optional GitHub Actions activation:** the publishing credential currently lacks GitHub's `workflow` scope. The complete workflow is therefore shipped as `.github/ci-template.yml`, and remote CI has not run. After granting that permission, move it to `.github/workflows/ci.yml` and push. All required application, DAG, notebook, and browser checks were executed locally; the project does not depend on GitHub Actions to run.
 
@@ -183,7 +190,7 @@ docker compose run --rm --no-deps \
   pipeline macro-pipeline update --as-of 2026-11-08
 ```
 
-Point `MACRO_DB_PATH` at the separate database when analyzing that historical snapshot. A vintage snapshot is not a look-ahead-free real-time backtest. Do not set `MACRO_AS_OF` permanently for daily live updates.
+Point `MACRO_DB_PATH` at the separate database when analyzing that historical snapshot. A vintage snapshot is not a look-ahead-free real-time backtest. Do not set `MACRO_AS_OF` permanently when requesting current data.
 
 ## Results and assignment scope
 
@@ -201,7 +208,7 @@ See [verification](reports/verification.md) and [assignment mapping](docs/requir
 - **Airflow startup:** allow up to two minutes for migrations. Check `docker compose ps` and task logs.
 - **Exit code 137 or builds running out of space:** check the Docker VM's memory and disk, not only the host's free resources. Allocate the recommended resources above. Colima users can stop the VM and restart it with `colima start --cpu 4 --memory 8 --disk 30`; restarting interrupts other containers on that VM.
 - **Validation failure:** inspect SQLite run/step records and retained raw JSON. Fix the source/configuration issue and rerun; do not silently fill data or relax checks.
-- **Old dashboard:** refresh its cache, check the vintage, and inspect the DAG schedule. Keep Docker running for updates.
+- **Old dashboard:** finish the current Run window, then click Run again to fetch current data and regenerate all outputs. A browser refresh alone does not fetch FRED data.
 - **Backups:** back up `data/` and the Airflow PostgreSQL volume. Use SQLite's backup API while writers are running instead of copying only the `.db` file and omitting its WAL.
 - **Long-term reproduction:** Python dependencies are version/hash locked; Airflow constraints are vendored; Python/Airflow base images use digests. Archive Docker images, raw JSON, SQLite backups, and a Git release together. External APIs and registries cannot be guaranteed in five years. Regenerate the lock and rerun all tests after intentional dependency upgrades.
 

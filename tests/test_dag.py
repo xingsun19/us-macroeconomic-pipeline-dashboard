@@ -18,6 +18,9 @@ def test_dag_import_and_dependency_graph():
         assert dag.get_task(upstream).downstream_task_ids == {downstream}
     assert dag.max_active_runs == 1
     assert not dag.catchup
+    assert dag.schedule is None
+    from airflow.timetables.simple import NullTimetable
+    assert isinstance(dag.timetable, NullTimetable)
     assert dag.get_task("generate_analysis").trigger_rule == "all_success"
     for task in dag.tasks:
         # Airflow context names cannot also be positional TaskFlow parameters.

@@ -7,7 +7,7 @@ Source: user-provided **Final Project (2).ipynb**, *Topics in Data Engineering â
 | Read API data | Authenticated FRED metadata and paginated observations; verified live runs |
 | Store API data in a database | SQLite raw JSON, normalized observations, staging, curated tables, and audit records |
 | DAG covering/measuring the full pipeline | Seven Airflow tasks, status/duration, retries/timeouts, validation, read-back, and automatic notebook/HTML/chart generation |
-| Easy-to-run repository | English README, example config, dependency lock, Docker Compose, startup script, executed tests, optional CI template |
+| Easy-to-run repository | English README, example config, dependency lock, Docker Compose, double-click Run launcher, executed tests, optional CI template |
 | EDA with key insights | Executed notebook, statistics, trends, correlations/lags, figures, computed findings and limitations |
 | Reproducible now and years later | Pins/hashes, vendored constraints, image digests, explicit vintages, raw checksums, archive guidance; external availability cannot be guaranteed |
 | GitHub code repository | Complete project and instructions |
@@ -18,3 +18,5 @@ Source: user-provided **Final Project (2).ipynb**, *Topics in Data Engineering â
 Additional user requirements implemented: three specified series, 2000â€“present analysis, explicit missing-value handling, derived variables, SQLite updates, executable Apache Airflow, a separate Streamlit/Plotly dashboard reading SQLite, flexible dates/indicators, comparisons/zoom/download, real execution/testing, English code/docs/UI, and no committed API key.
 
 All five core technical requirements are addressed. This delivery does not claim the course coordination, slide submission, or classroom presentation has occurred.
+
+At the user's request, execution is now on demand: `schedule=None`, no catchup, and no automatic container restart. Clicking Run executes the complete seven-task DAG and regenerates analysis; pressing Return after viewing stops services. The Airflow DAG and audit records remain part of the project, without a recurring background workload.

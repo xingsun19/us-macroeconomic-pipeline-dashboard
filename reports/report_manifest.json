@@ -1,16 +1,16 @@
 {
-  "run_id": "783a2ed138de653611eca7685c9a75b8",
+  "run_id": "1eb927118675684d0aff359cbc85af2d",
   "as_of": "2026-11-08",
   "rows": 322,
-  "generated_at": "2026-11-09T02:39:00.471090+00:00",
+  "generated_at": "2026-11-09T02:54:40.621526+00:00",
   "executed_code_cells": 11,
   "notebook": {
     "name": "01_macroeconomic_eda.ipynb",
-    "sha256": "49c786356e89e3edaf64e7c9af2b441aa9b1a2c41d6eb6230b643ced1fac0573"
+    "sha256": "c9374032dd3d17c8c657b4c445cee68970d5ed2cc19c46f5496fc57fcd094e93"
   },
   "files": {
-    "eda.html": "5e88113d605e1576af138d72be0086b7c1d017a808895afe52c2aeec3720f020",
-    "analysis_summary.json": "2eee7ebfb6505655f67fad8c3af6797e63514b88e5021dc98dbd357e0fb88bfb",
+    "eda.html": "d66925803f5384ff46a8e4a7cd411ce998f184b9c9dc03ae69e854b778c80829",
+    "analysis_summary.json": "a59ac74df6fc08226c44e76c74c88b5a7b6b1d6cc26757908c392ec9165aea18",
     "findings.md": "cca62c5a5afb2eb1985ce08db38e0004fa1abfce75a538e26dc7256700bc625c",
     "monthly_indicators.csv": "c001b35c607ae16de7b1cbb2471444aaa79c6a28c312123cc53ea99ae37298d2",
     "descriptive_statistics.csv": "2b5bb312dee4e28d979fde984e8cf118aee63a9043b3781a952cc4ed40e7fc95",

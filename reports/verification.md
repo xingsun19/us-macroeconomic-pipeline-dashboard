@@ -4,26 +4,32 @@ Verified on **November 8, 2026 (America/Chicago)**. Container/audit timestamps u
 
 | Check | Observed outcome |
 |---|---|
-| Native Python application tests | 39 passed, 1 Airflow-specific test deselected; Python 3.13.5 |
-| Linux Docker application tests | 39 passed, 1 Airflow-specific test deselected; Python 3.11.18 |
+| Native Python application tests | 46 passed, 1 Airflow-specific test deselected; Python 3.13.5 |
+| Linux Docker application tests | 46 passed, 1 Airflow-specific test deselected; Python 3.11.18 |
 | Application coverage | 94% statement coverage (542 statements, 30 not covered) |
 | Airflow import/dependency graph | 1 passed in the Apache Airflow 3.1.8 container |
 | Real `dag.test()` execution | All seven tasks succeeded, including live FRED requests, SQLite publication, and notebook/report generation |
-| Real scheduler/LocalExecutor execution | Run `verification_daily_analysis`: SUCCESS; all seven tasks SUCCESS |
+| Earlier scheduler/LocalExecutor verification | Run `verification_daily_analysis`: SUCCESS; all seven tasks SUCCESS; recurring scheduling has since been removed at the user's request |
+| On-demand Run launcher | All seven tasks succeeded in a temporary Airflow container; HTML/dashboard opened; pressing Return stopped project services |
+| Fresh Airflow metadata | Initialized a separate empty PostgreSQL database, executed all seven tasks successfully, and confirmed paused DAG with no next scheduled run |
 | Notebook | All 11 code cells executed without errors, natively and by Airflow's isolated Docker analysis environment |
 | Report provenance | All 12 report artifact hashes and the executed notebook hash match the manifest; report run ID matches SQLite publication |
 | Report failure isolation | Deliberate cell failure and missing PNG reject publication; previous HTML/artifacts remain unchanged; failed analysis is audited without invalidating published data |
-| Automatic schedule | DAG unpaused; next scheduled run November 9, 2026, 18:00 UTC |
+| No automatic schedule | DAG uses `schedule=None` and `NullTimetable`; graph regression test passes; no persistent Airflow scheduler is needed |
 | Browser UI | Latest metrics, standardized comparison, relationship tab, zoom/reset, quality table, and download inspected |
 | Browser CSV download | 322 rows; six selected value/quality columns plus date; values match SQLite using a DataFrame equality check |
 | Streamlit interactions | AppTest verifies date filtering, indicator filtering, standardization, lag/changes controls, empty selection, short windows, missing database |
-| Docker readiness | Dashboard, PostgreSQL, Airflow API, scheduler, DAG processor, and triggerer healthy |
+| Docker lifecycle | PostgreSQL healthy during execution, dashboard healthy during viewing; project services stopped afterward |
 
 The published data have **322 monthly rows (2000-01 through 2026-10)**. The latest values are UNRATE **4.1%** (2026-10), CPIAUCSL **336.298** (2026-09), and FEDFUNDS **3.88%** (2026-10). October 2025 UNRATE/CPI and unreleased October 2026 CPI are retained as null with explicit flags.
 
 The suite exercises pagination, rate-limit retries, sanitized HTTP/timeout errors, duplicate conflicts, source missingness, missing-month rejection, release-date differences, warm-up inflation, invalid values, stale data, derived identities, raw-checksum tampering, idempotent reruns, historical revisions, transaction rollback, rejected updates preserving the prior publication, CLI exports, and analysis artifacts. Reporting integration tests execute real Jupyter kernels, verify refreshed exports after a historical revision, reject a mismatched run ID, and exercise failed-cell/missing-figure preservation.
 
-The final scheduler run published data run `783a2ed138de653611eca7685c9a75b8` and generated its matching reports at **2026-11-09 02:39:00 UTC**. The outputs comprise one HTML report, four PNG figures, five CSV tables/data exports, findings Markdown, and a JSON analysis summary, plus the executed notebook and checksum manifest. All seven stages also show SUCCESS in the application's SQLite audit table. The report generation task took approximately 2.1 seconds in this run.
+Seven launcher tests cover interactive completion/cleanup, failed-run cleanup without opening the dashboard, starting/stopping an owned Colima VM from either the `colima` or `default` Docker context, preserving other running containers, and rejecting duplicate Run windows. They use isolated command doubles; the real launcher was also executed against Docker and the live FRED API.
+
+The interactive Run verification published data run `8fdcf9538f1f79ea43175d3e9fe47b9e`. All 12 artifact hashes and the executed notebook hash were checked against its manifest, and all seven SQLite audit stages were SUCCESS. The outputs comprise one HTML report, four PNG figures, five CSV tables/data exports, findings Markdown, and a JSON analysis summary, plus the executed notebook and checksum manifest. Later verification runs can refresh these artifacts; `reports/report_manifest.json` identifies the latest published analysis.
+
+The final cold-start Run verification began with Colima stopped, started Docker, migrated/reserialized Airflow metadata, and published data run `1eb927118675684d0aff359cbc85af2d` with matching analysis at **2026-11-09 02:54:40 UTC**. All seven tasks, 11 notebook code cells, and 12 report artifact checks passed. Reserialization explicitly recorded `next_dagrun=None` and `run_after=None`. The dashboard was healthy during viewing, and both persistent containers had restart policy `no`. Pressing Return exited successfully, removed the launcher lock, stopped project services, and shut down the Colima VM; its stopped state was independently confirmed.
 
 ## Issues found and resolved
 
@@ -33,6 +39,7 @@ The final scheduler run published data run `783a2ed138de653611eca7685c9a75b8` an
 - Adding the notebook runtime exposed the original Docker VM's 10 GB disk limit. The Airflow image now installs a minimal, separately hash-locked analysis environment instead of the entire dashboard/JupyterLab stack. The local VM disk was expanded to 30 GB.
 - Running kernel integration tests alongside the live DAG exhausted the original 2 GB Docker VM memory and interrupted a smoke test (exit 137). The VM now has 4 CPUs and 8 GB RAM. The interrupted run remains recorded as failed; rerunning the complete seven-task smoke test and the scheduler-driven DAG succeeded.
 - Earlier runs interrupted or superseded during development are retained as failed audit records. No failed or older snapshot replaced the final successful publication.
+- The first cold-start launcher check found that stopping Colima resets Docker's context to `default`. The launcher now handles both `default` and `colima` contexts, with regression tests. A subsequent real cold-start run succeeded.
 
 Minor dependency warnings were emitted by Matplotlib/Jupyter; the official Airflow base also emits a Requests optional-detection dependency warning. They did not prevent execution. No tests are marked xfail, and no task was skipped in either successful full DAG verification run.
 
@@ -40,4 +47,4 @@ Minor dependency warnings were emitted by Matplotlib/Jupyter; the official Airfl
 
 The executed notebook, generated statistics/figures, findings, and this report are repository artifacts. Raw JSON, SQLite files, temporary logs, and credentials remain local. The CI template uses offline fixtures and checks DAG structure without a FRED secret; live end-to-end verification was performed locally with the configured key. Remote CI is not claimed: GitHub rejected active workflow publication because the current OAuth credential lacks `workflow` scope. The complete configuration is retained as `.github/ci-template.yml` for optional activation after authorization.
 
-This is a local Docker deployment. The daily schedule is enabled, but the host must stay on. No claim is made about five years of uninterrupted third-party service availability. PowerPoint, group/API approval, and classroom presentation are outside the completed technical scope.
+This is a local, on-demand Docker deployment. The daily schedule has been removed. The host only needs to be available while the user runs or views the dashboard; HTML reports remain usable with Docker stopped. No claim is made about five years of uninterrupted third-party service availability. PowerPoint, group/API approval, and classroom presentation are outside the completed technical scope.
