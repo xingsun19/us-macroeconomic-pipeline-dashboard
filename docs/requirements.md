@@ -15,7 +15,7 @@ Source: user-provided **Final Project (2).ipynb**, *Topics in Data Engineering �
 | Week 10 classroom presentation | Student/team responsibility; not completed by this implementation |
 | Team of 4–5 and Week 6 membership/API approval | Course coordination to confirm with the instructor; no message was sent |
 
-Additional user requirements implemented: three specified series, 2000–present analysis, explicit missing-value handling, derived variables, SQLite updates, executable Apache Airflow, a separate Streamlit/Plotly dashboard reading SQLite, flexible dates/indicators, comparisons/zoom/download, real execution/testing, English code/docs/UI, and no committed API key.
+Additional user requirements implemented: three specified series, 2000–present analysis, explicit missing-value handling, derived variables, SQLite updates, executable Apache Airflow, a separate Streamlit/Plotly dashboard reading SQLite, selectable indicators, comparisons/zoom/download, real execution/testing, English code/docs/UI, and no committed API key. At the user's later request, date selection and the timeline slider were removed: charts and downloads now use the full available history by default.
 
 All five core technical requirements are addressed. This delivery does not claim the course coordination, slide submission, or classroom presentation has occurred.
 

@@ -18,7 +18,7 @@ Verified on **November 8, 2026 (America/Chicago)**. Container/audit timestamps u
 | No automatic schedule | DAG uses `schedule=None` and `NullTimetable`; graph regression test passes; no persistent Airflow scheduler is needed |
 | Browser UI | Latest metrics, standardized comparison, relationship tab, zoom/reset, quality table, and download inspected |
 | Browser CSV download | 322 rows; six selected value/quality columns plus date; values match SQLite using a DataFrame equality check |
-| Streamlit interactions | AppTest verifies date filtering, indicator filtering, standardization, lag/changes controls, empty selection, short windows, missing database |
+| Streamlit interactions | After removing date controls, all 3 targeted AppTest tests passed: full-history chart/table data, no date picker or timeline slider, indicator filtering, standardization, lag/changes controls, empty/single selection, and missing database |
 | Docker lifecycle | PostgreSQL healthy during execution, dashboard healthy during viewing; project services stopped afterward |
 
 The published data have **322 monthly rows (2000-01 through 2026-10)**. The latest values are UNRATE **4.1%** (2026-10), CPIAUCSL **336.298** (2026-09), and FEDFUNDS **3.88%** (2026-10). October 2025 UNRATE/CPI and unreleased October 2026 CPI are retained as null with explicit flags.

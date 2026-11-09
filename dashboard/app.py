@@ -54,18 +54,17 @@ except (OSError, ValueError, sqlite3.Error):
 
 with st.sidebar:
     st.divider()
-    st.markdown("**Explore the timeline**")
+    st.markdown("**Display options**")
     min_date, max_date = data.index.min().date(), data.index.max().date()
-    selected_dates = st.date_input("Date range", value=(min_date, max_date), min_value=min_date, max_value=max_date, format="YYYY-MM-DD", key="date_range")
     selected = st.multiselect("Indicators", list(LABELS), default=["unrate", "cpiaucsl", "fedfunds"], format_func=lambda x: LABELS[x], key="indicators")
     mode = st.radio("Trend comparison", ["Original units", "Standardized (z-score)"], key="comparison")
-    st.caption("Standardization uses the selected window. Each series is centered and scaled to its own standard deviation.")
+    st.caption("Standardization uses the full history. Each series is centered and scaled to its own standard deviation.")
     st.divider()
     st.caption(f"FRED vintage: {run['as_of']}\n\nMonthly data · January 2000 onward\n\nSource: Federal Reserve Bank of St. Louis")
 
 st.markdown('<div class="eyebrow">RESEARCH DESK / UNITED STATES</div>', unsafe_allow_html=True)
 st.title("The economy, in perspective.")
-st.markdown('<p class="intro">Explore the relationship between jobs, prices, and monetary policy. A continuously refreshed view of three defining U.S. economic indicators.</p>', unsafe_allow_html=True)
+st.markdown('<p class="intro">Explore the relationship between jobs, prices, and monetary policy. The full history of three defining U.S. economic indicators, from 2000 onward.</p>', unsafe_allow_html=True)
 st.caption(f"Validated dataset · {len(data):,} monthly rows · Published {pd.Timestamp(run['published_at']).strftime('%Y-%m-%d %H:%M UTC')}")
 st.markdown("#### Latest available observations")
 for container, col in zip(st.columns(3), ["unrate", "cpiaucsl", "fedfunds"]):
@@ -78,17 +77,10 @@ for container, col in zip(st.columns(3), ["unrate", "cpiaucsl", "fedfunds"]):
     with container:
         st.metric(LABELS[col], f"{last:.2f}" + ("%" if col != "cpiaucsl" else ""), delta=delta, delta_color="off")
         st.caption(f"{observed.index[-1]:%B %Y} · {UNITS[col]}")
-st.caption("Latest cards use the full dataset. Charts, correlations, and CSV downloads use your selected date range. Publication months differ by series.")
+st.caption("Charts, correlations, and CSV downloads include the full available history. Publication months differ by series.")
 if (pd.Timestamp(date.today()) - pd.Timestamp(run["as_of"])).days > 7:
-    st.warning("This snapshot is more than seven days old. Run the pipeline or check the Airflow schedule for new releases.")
+    st.warning("This snapshot is more than seven days old. Start the project with Run.command to check for new releases.")
 
-if len(selected_dates) != 2:
-    st.info("Choose both a start and an end date to continue.")
-    st.stop()
-window = data.loc[pd.Timestamp(selected_dates[0]):pd.Timestamp(selected_dates[1])]
-if window.empty:
-    st.info("No monthly observations fall inside this date range. Widen the range to include a month start.")
-    st.stop()
 if not selected:
     st.info("Select at least one indicator in the sidebar.")
     st.stop()
@@ -96,21 +88,21 @@ if not selected:
 overview, relations, table = st.tabs(["Historical trends", "Relationships", "Data & quality"])
 with overview:
     st.subheader("Follow the long view")
-    st.caption(f"{selected_dates[0]:%b %d, %Y} — {selected_dates[1]:%b %d, %Y} · {len(window):,} monthly observations. Drag to zoom, scroll to zoom, or double-click to reset.")
+    st.caption(f"{min_date:%B %Y} — {max_date:%B %Y} · Full history · {len(data):,} monthly observations.")
     if mode == "Original units":
         fig = make_subplots(rows=len(selected), cols=1, shared_xaxes=True, subplot_titles=[f"{LABELS[c]} · {UNITS[c]}" for c in selected], vertical_spacing=min(.09, .4 / len(selected)))
         for i, col in enumerate(selected):
-            fig.add_trace(go.Scatter(x=window.index, y=window[col], name=LABELS[col], line={"color": PALETTE[i], "width": 2.3}, connectgaps=False, hovertemplate="%{x|%b %Y}<br>%{y:.2f}<extra>%{fullData.name}</extra>"), row=i+1, col=1)
+            fig.add_trace(go.Scatter(x=data.index, y=data[col], name=LABELS[col], line={"color": PALETTE[i], "width": 2.3}, connectgaps=False, hovertemplate="%{x|%b %Y}<br>%{y:.2f}<extra>%{fullData.name}</extra>"), row=i+1, col=1)
         fig.update_layout(height=max(350, 245 * len(selected)), showlegend=False)
     else:
-        std = window[selected].std(ddof=0).replace(0, np.nan)
-        normalized = (window[selected] - window[selected].mean()) / std
+        std = data[selected].std(ddof=0).replace(0, np.nan)
+        normalized = (data[selected] - data[selected].mean()) / std
         unusable = std[std.isna()].index.tolist()
         if unusable:
             st.info("Constant or empty series cannot be standardized: " + ", ".join(LABELS[c] for c in unusable))
-        fig = px.line(normalized.rename(columns=LABELS), color_discrete_sequence=PALETTE, labels={"value": "Standard deviations from selected-window mean", "date": "", "variable": "Indicator"}, height=530)
+        fig = px.line(normalized.rename(columns=LABELS), color_discrete_sequence=PALETTE, labels={"value": "Standard deviations from full-history mean", "date": "", "variable": "Indicator"}, height=530)
         fig.add_hline(y=0, line_width=1, line_color="#cedadd")
-        fig.update_xaxes(rangeslider_visible=True)
+    fig.update_xaxes(rangeslider_visible=False)
     fig.update_layout(template="plotly_white", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="white", font={"family": "Arial", "color": "#243e4c"}, margin={"l": 25, "r": 25, "t": 45, "b": 20}, hovermode="x unified", legend={"orientation": "h", "y": 1.12})
     st.plotly_chart(fig, use_container_width=True, config=CHART_CONFIG, key="trend_chart")
     st.caption("CPI is a price-level index. Select CPI inflation to compare growth in prices with rates. Missing values remain gaps; no values are interpolated.")
@@ -121,19 +113,19 @@ with relations:
     xcol = controls[0].selectbox("Horizontal axis", list(LABELS), index=0, format_func=lambda x: LABELS[x], key="x_indicator")
     ycol = controls[1].selectbox("Vertical axis", list(LABELS), index=3, format_func=lambda x: LABELS[x], key="y_indicator")
     lag = controls[2].slider("Outcome lag (months)", 0, 24, 0, key="lag")
-    # Shift on the complete monthly grid inside the chosen window before dropping nulls.
-    pairs = pd.DataFrame({"x": window[xcol], "y": window[ycol].shift(-lag)}, index=window.index).dropna()
+    # Shift on the complete monthly grid before dropping nulls.
+    pairs = pd.DataFrame({"x": data[xcol], "y": data[ycol].shift(-lag)}, index=data.index).dropna()
     if len(pairs) >= 3 and pairs.x.nunique() > 1 and pairs.y.nunique() > 1:
         pairs["Year"] = pairs.index.year
         pairs["Month"] = pairs.index.strftime("%Y-%m")
         scatter = px.scatter(pairs, x="x", y="y", color="Year", hover_data=["Month"], color_continuous_scale="Teal", labels={"x": f"{LABELS[xcol]} at t ({UNITS[xcol]})", "y": f"{LABELS[ycol]} at t+{lag} ({UNITS[ycol]})"}, height=450)
         scatter.update_layout(template="plotly_white", paper_bgcolor="rgba(0,0,0,0)")
         st.plotly_chart(scatter, use_container_width=True, config=CHART_CONFIG, key="scatter_chart")
-        st.caption(f"Pearson r = {pairs.x.corr(pairs.y):.3f} · {len(pairs)} matched months. Positive lag pairs the horizontal series at month t with the vertical series at month t + lag. Both dates remain inside the selected window.")
+        st.caption(f"Pearson r = {pairs.x.corr(pairs.y):.3f} · {len(pairs)} matched months. Positive lag pairs the horizontal series at month t with the vertical series at month t + lag, using the full available history.")
     else:
-        st.info("At least three paired observations with variation are needed. Widen the date range or change the indicators.")
+        st.info("At least three paired observations with variation are needed. Try different indicators.")
     correlation_mode = st.radio("Correlation transformation", ["Levels", "Monthly changes"], horizontal=True, key="correlation_mode")
-    corr_data = window[selected] if correlation_mode == "Levels" else window[selected].diff()
+    corr_data = data[selected] if correlation_mode == "Levels" else data[selected].diff()
     if len(selected) > 1 and len(corr_data) >= 3:
         corr = corr_data.corr(min_periods=3).rename(index=LABELS, columns=LABELS)
         heat = px.imshow(corr, zmin=-1, zmax=1, color_continuous_scale="BrBG", text_auto=".2f", aspect="auto", height=380)
@@ -144,8 +136,8 @@ with relations:
 
 with table:
     st.subheader("Transparent data, from source to chart")
-    download = window[[*selected, "unrate_status", "cpiaucsl_status", "fedfunds_status"]]
-    st.download_button("Download selected data · CSV", data=download.to_csv(index_label="date").encode("utf-8"), file_name=f"us_macro_{selected_dates[0]}_{selected_dates[1]}.csv", mime="text/csv", key="download_csv")
+    download = data[[*selected, "unrate_status", "cpiaucsl_status", "fedfunds_status"]]
+    st.download_button("Download full history · CSV", data=download.to_csv(index_label="date").encode("utf-8"), file_name=f"us_macro_{min_date}_{max_date}.csv", mime="text/csv", key="download_csv")
     st.dataframe(download, use_container_width=True)
     st.markdown("**Quality policy.** Source `.` values are stored as null and flagged. Omitted calendar months, invalid values, or more than 5% source-missing observations block publication. Unreleased trailing months remain null. No forward-fill, interpolation, or fabricated observations. Raw responses and SHA-256 checksums are retained locally.")
     st.caption("The October 2025 unemployment and CPI observations are missing because of the federal government shutdown. Monthly changes touching this gap, and year-over-year changes using it as a base, remain unavailable.")

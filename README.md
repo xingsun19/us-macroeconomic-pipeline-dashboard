@@ -47,13 +47,13 @@ This is a **local demonstration deployment**. Ports bind to loopback; Airflow us
 ## Dashboard features
 
 - Latest values with each series' own observation month and adjacent-month changes.
-- Arbitrary date ranges within the available history and selectable original/derived indicators.
+- Full-history charts from January 2000 through the latest available month, with no date picker or timeline slider; selectable original/derived indicators.
 - Separate original-unit charts and standardized overlays; Plotly zoom, pan, reset, hover, and PNG export.
 - Scatter plots with 0–24 month outcome lags and correlation heatmaps in levels or monthly changes.
-- Downloadable CSV reflecting selected dates/indicators and including quality flags.
+- Downloadable CSV containing the full history of the selected indicators, including quality flags.
 - Direct SQLite reads with a 60-second cache and a **Refresh database** button; no FRED requests or API key are needed by the dashboard.
 
-Latest-value cards use the full dataset. Charts and downloads use the selected window. Date filters include observations whose month-start date is in the selection. Positive lag k pairs X at t with Y at t+k, keeping both months inside the window. Refreshing the dashboard does not itself fetch new FRED data.
+Latest-value cards, charts, correlations, and downloads use the full dataset. Standardization uses the full history. Positive lag k pairs X at t with Y at t+k, keeping both months inside the available history. Refreshing the dashboard does not itself fetch new FRED data.
 
 ## Architecture and repository
 
